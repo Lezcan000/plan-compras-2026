@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plan de Compras - Interfaz Colaborativa</title>
-    <!-- Librería xlsx-js-style para permitir estilos como Negrilla en el Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     
     <style>
@@ -103,6 +102,7 @@
         .table-wrapper {
             overflow: auto;
             flex-grow: 1;
+            scroll-behavior: smooth;
         }
 
         table {
@@ -215,7 +215,6 @@
 </head>
 <body>
 
-    <!-- VISTA 1: PLAN DE COMPRAS -->
     <div id="viewPlanCompras" class="container">
         <div class="header">
             <div>
@@ -280,7 +279,6 @@
         </div>
     </div>
 
-    <!-- VISTA 2: ANEXO PRESUPUESTAL -->
     <div id="viewAnexoPresupuestal" class="container view-hidden">
         <div class="header">
             <div>
@@ -336,8 +334,7 @@
         <div class="filters-bar" style="padding: 12px 20px; background: #e0e7ff; border-bottom: 1px solid var(--border); display: flex; gap: 20px; align-items: center; z-index: 25;">
             <strong style="font-size: 14px; color: var(--primary);">👀 Viendo Proyecto:</strong>
             <select id="filterProyectoAnexo" onchange="onProyectoAnexoChange()" style="padding: 6px 10px; border: 1px solid var(--primary); border-radius: 4px; font-size: 13px; min-width: 150px; background: white; font-weight: bold;">
-                <!-- Populated dynamically -->
-            </select>
+                </select>
         </div>
 
         <div class="table-wrapper">
@@ -350,7 +347,6 @@
         </div>
     </div>
 
-    <!-- Modales de Sistema -->
     <div class="modal-overlay" id="msgModal">
         <div class="modal" style="width: 400px; text-align: center;">
             <h3 id="msgModalTitle" style="margin-top: 0; color: var(--text-main);">Alerta</h3>
@@ -374,7 +370,6 @@
         </div>
     </div>
 
-    <!-- Modal de Validación de Google Sheets (TD Diferencias) -->
     <div class="modal-overlay" id="validationModal">
         <div class="modal modal-large">
             <h3>⚠️ Alerta de Google Sheets</h3>
@@ -414,13 +409,11 @@
             if(s2) { s2.className = className; s2.innerText = text; }
         }
 
-        // Función que se llama ante CUALQUIER cambio para programar un guardado
         function triggerAutoSave() {
-            if (currentRole === 'Invitado') return; // Solo Lectura no guarda
+            if (currentRole === 'Invitado') return; 
 
             updateSaveStatus('saving');
             
-            // Si ya había un guardado programado, lo cancelamos y esperamos 2.5 segundos más
             if (saveTimeoutId) {
                 clearTimeout(saveTimeoutId);
             }
@@ -682,10 +675,18 @@
             const subsec = getSubsecretariaFromRole(currentRole);
             if (subsec) nuevaFila["Subsecretaría"] = subsec;
             
-            appData.unshift(nuevaFila);
+            // CAMBIO: Insertar al final con push()
+            appData.push(nuevaFila);
             updateFilterOptions();
             renderTable();
-            triggerAutoSave(); // Gatillar autoguardado al crear fila
+            
+            // Hacer scroll hacia abajo para ver la fila nueva
+            setTimeout(() => {
+                const wrapper = document.querySelector('#viewPlanCompras .table-wrapper');
+                wrapper.scrollTop = wrapper.scrollHeight;
+            }, 100);
+
+            triggerAutoSave(); 
         }
 
         function crearFilaAnexo() {
@@ -699,10 +700,18 @@
             const valProyAnexo = document.getElementById('filterProyectoAnexo')?.value || "";
             if (valProyAnexo) nuevaFila["Proyecto"] = valProyAnexo;
 
-            anexoData.unshift(nuevaFila);
+            // CAMBIO: Insertar al final con push()
+            anexoData.push(nuevaFila);
             updateFilterOptions();
             renderAnexoTable();
-            triggerAutoSave(); // Gatillar autoguardado al crear fila anexo
+
+            // Hacer scroll hacia abajo para ver la fila nueva
+            setTimeout(() => {
+                const wrapper = document.querySelector('#viewAnexoPresupuestal .table-wrapper');
+                wrapper.scrollTop = wrapper.scrollHeight;
+            }, 100);
+
+            triggerAutoSave(); 
         }
 
         // --- LÓGICAS DE DATOS DE LA TABLA ---
@@ -868,7 +877,6 @@
                         newValue = (!isNaN(newValue) && newValue !== "") ? Number(newValue) : (newValue === "" ? "" : newValue);
                     }
                     
-                    // Solo activar guardado si el valor realmente cambió
                     if (dataRef[rIndex][col] !== newValue) {
                         dataRef[rIndex][col] = newValue;
 
@@ -881,7 +889,6 @@
 
                         if (isCurrency && cell.tagName !== 'TD') e.target.value = (newValue !== "") ? formatMoneda(newValue) : '';
 
-                        // Iniciar el guardado en la nube tras cada edición real
                         triggerAutoSave();
                     }
                 });
@@ -963,7 +970,6 @@
 
                             onProyectoAnexoChange();
                         }
-                        // Disparar autoguardado al subir archivo exitosamente
                         triggerAutoSave();
                     } else {
                         showMsg("Error", "El archivo Excel parece estar vacío.");
@@ -1049,7 +1055,7 @@
             }
         }
 
-        // Datos iniciales de prueba vacíos para iniciar en limpio (se cargarán desde Excel)
+        // Inicializamos las tablas vacías
         updateFilterOptions();
         renderTable();
         renderAnexoTable();
