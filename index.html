@@ -385,9 +385,10 @@
         // =========================================================
         // MOTOR DE GUARDADO AUTOMÁTICO EN LA NUBE (DEBOUNCE)
         // =========================================================
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyop7Y9eXPT_srIn0oz6OxkUC7xah9W3KviI33cHolJbZtJRb8wdmcRlsKR3i38RBs/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxYgM4qt35siJIqULL8PTNaa7V_qLlAsvsuskAXfWcHoAfgfR3G3omwmaqqBAbaZn4/exec";
         
         let saveTimeoutId = null;
+        let currentView = 'Plan'; // Rastreador de la vista actual
 
         function updateSaveStatus(status) {
             const s1 = document.getElementById('saveStatus1');
@@ -409,11 +410,13 @@
             if(s2) { s2.className = className; s2.innerText = text; }
         }
 
+        // Función que se llama ante CUALQUIER cambio para programar un guardado
         function triggerAutoSave() {
-            if (currentRole === 'Invitado') return; 
+            if (currentRole === 'Invitado') return; // Solo Lectura no guarda
 
             updateSaveStatus('saving');
             
+            // Si ya había un guardado programado, lo cancelamos y esperamos 2.5 segundos más
             if (saveTimeoutId) {
                 clearTimeout(saveTimeoutId);
             }
@@ -440,8 +443,12 @@
                     updateSaveStatus('saved');
                 } else if (result.status === 'warning') {
                     updateSaveStatus('warning');
-                    document.getElementById('validationErrors').innerText = result.errores.join("\n");
-                    document.getElementById('validationModal').style.display = 'flex';
+                    
+                    // MODIFICACIÓN: Solo mostrar el pop-up de alerta si el usuario está en la vista del Anexo
+                    if (currentView === 'Anexo') {
+                        document.getElementById('validationErrors').innerText = result.errores.join("\n");
+                        document.getElementById('validationModal').style.display = 'flex';
+                    }
                 } else {
                     updateSaveStatus('error');
                     console.error("Error del servidor:", result.message);
@@ -471,6 +478,8 @@
         }
 
         function switchView(viewName) {
+            currentView = viewName; // Actualizar el rastreador de vista
+            
             if (viewName === 'Anexo') {
                 document.getElementById('viewPlanCompras').classList.add('view-hidden');
                 document.getElementById('viewAnexoPresupuestal').classList.remove('view-hidden');
@@ -675,12 +684,12 @@
             const subsec = getSubsecretariaFromRole(currentRole);
             if (subsec) nuevaFila["Subsecretaría"] = subsec;
             
-            // CAMBIO: Insertar al final con push()
+            // Insertar al final
             appData.push(nuevaFila);
             updateFilterOptions();
             renderTable();
             
-            // Hacer scroll hacia abajo para ver la fila nueva
+            // Bajar la pantalla para ver la fila nueva
             setTimeout(() => {
                 const wrapper = document.querySelector('#viewPlanCompras .table-wrapper');
                 wrapper.scrollTop = wrapper.scrollHeight;
@@ -700,12 +709,12 @@
             const valProyAnexo = document.getElementById('filterProyectoAnexo')?.value || "";
             if (valProyAnexo) nuevaFila["Proyecto"] = valProyAnexo;
 
-            // CAMBIO: Insertar al final con push()
+            // Insertar al final
             anexoData.push(nuevaFila);
             updateFilterOptions();
             renderAnexoTable();
 
-            // Hacer scroll hacia abajo para ver la fila nueva
+            // Bajar la pantalla para ver la fila nueva
             setTimeout(() => {
                 const wrapper = document.querySelector('#viewAnexoPresupuestal .table-wrapper');
                 wrapper.scrollTop = wrapper.scrollHeight;
@@ -1055,7 +1064,7 @@
             }
         }
 
-        // Inicializamos las tablas vacías
+        // Inicializamos las tablas
         updateFilterOptions();
         renderTable();
         renderAnexoTable();
