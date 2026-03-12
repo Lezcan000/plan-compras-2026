@@ -126,7 +126,6 @@
             z-index: 10;
         }
 
-        /* Primera columna sticky (ahora será la columna de Acciones) */
         th:nth-child(1), td:nth-child(1) { position: sticky; left: 0; z-index: 20; }
         th:nth-child(1) { z-index: 30; }
         
@@ -138,10 +137,10 @@
         }
 
         .row-locked { background-color: var(--locked-bg); color: var(--text-muted); }
-        .row-locked td:nth-child(1) { background-color: #e2e8f0; }
+        .row-locked td:nth-child(1) { background-color: #e2e8f0; font-weight: 600; }
         
         .row-editable { background-color: var(--editable-bg); }
-        .row-editable td:nth-child(1) { background-color: #bfdbfe; }
+        .row-editable td:nth-child(1) { background-color: #bfdbfe; font-weight: 600; }
         .row-editable td[contenteditable="true"]:hover { background-color: #dbeafe; cursor: text; outline: 1px dashed var(--primary); }
         .row-editable td[contenteditable="true"]:focus { background-color: #fff; outline: 2px solid var(--primary); }
 
@@ -212,20 +211,6 @@
         .status-saving { background: #fef08a; color: #b45309; }
         .status-saved { background: #dcfce7; color: #166534; }
         .status-error { background: #fee2e2; color: #991b1b; }
-        
-        /* Estilo para botón eliminar de la tabla */
-        .btn-delete {
-            background-color: #ef4444;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: background 0.2s;
-        }
-        .btn-delete:hover { background-color: #dc2626; }
-
     </style>
 </head>
 <body>
@@ -425,11 +410,13 @@
             if(s2) { s2.className = className; s2.innerText = text; }
         }
 
+        // Función que se llama ante CUALQUIER cambio para programar un guardado
         function triggerAutoSave() {
-            if (currentRole === 'Invitado') return; 
+            if (currentRole === 'Invitado') return; // Solo Lectura no guarda
 
             updateSaveStatus('saving');
             
+            // Si ya había un guardado programado, lo cancelamos y esperamos 2.5 segundos más
             if (saveTimeoutId) {
                 clearTimeout(saveTimeoutId);
             }
@@ -457,7 +444,7 @@
                 } else if (result.status === 'warning') {
                     updateSaveStatus('warning');
                     
-                    // Solo mostrar el modal pop-up con errores si estamos en la vista Anexo
+                    // MODIFICACIÓN: Solo mostrar el pop-up de alerta si el usuario está en la vista del Anexo
                     if (currentView === 'Anexo') {
                         document.getElementById('validationErrors').innerText = result.errores.join("\n");
                         document.getElementById('validationModal').style.display = 'flex';
@@ -491,7 +478,7 @@
         }
 
         function switchView(viewName) {
-            currentView = viewName; // Actualiza qué pestaña estamos viendo
+            currentView = viewName; // Actualizar el rastreador de vista
             
             if (viewName === 'Anexo') {
                 document.getElementById('viewPlanCompras').classList.add('view-hidden');
@@ -689,7 +676,6 @@
             return ownerNorm === roleNorm;
         }
 
-        // --- FUNCIONES DE CREACIÓN Y ELIMINACIÓN DE FILAS ---
         function crearNecesidad() {
             if (currentRole === 'Invitado') return;
             const nuevaFila = {};
@@ -698,10 +684,12 @@
             const subsec = getSubsecretariaFromRole(currentRole);
             if (subsec) nuevaFila["Subsecretaría"] = subsec;
             
+            // Insertar al final
             appData.push(nuevaFila);
             updateFilterOptions();
             renderTable();
             
+            // Bajar la pantalla para ver la fila nueva
             setTimeout(() => {
                 const wrapper = document.querySelector('#viewPlanCompras .table-wrapper');
                 wrapper.scrollTop = wrapper.scrollHeight;
@@ -721,10 +709,12 @@
             const valProyAnexo = document.getElementById('filterProyectoAnexo')?.value || "";
             if (valProyAnexo) nuevaFila["Proyecto"] = valProyAnexo;
 
+            // Insertar al final
             anexoData.push(nuevaFila);
             updateFilterOptions();
             renderAnexoTable();
 
+            // Bajar la pantalla para ver la fila nueva
             setTimeout(() => {
                 const wrapper = document.querySelector('#viewAnexoPresupuestal .table-wrapper');
                 wrapper.scrollTop = wrapper.scrollHeight;
@@ -733,9 +723,9 @@
             triggerAutoSave(); 
         }
 
-        // Nueva función: Eliminar fila
+        // FUNCION PARA ELIMINAR FILAS
         function eliminarFila(type, index) {
-            if (confirm("¿Estás seguro de que deseas eliminar esta fila? Esta acción no se puede deshacer.")) {
+            if (confirm("¿Estás seguro de eliminar esta fila?")) {
                 if (type === 'Plan') {
                     appData.splice(index, 1);
                     updateFilterOptions();
@@ -745,12 +735,14 @@
                     updateFilterOptions();
                     renderAnexoTable();
                 }
-                triggerAutoSave(); // Guarda el cambio en Google Sheets
+                triggerAutoSave();
             }
         }
 
-
         // --- LÓGICAS DE DATOS DE LA TABLA ---
+        let appData = [];
+        let anexoData = [];
+
         const getColStyle = (colName) => {
             if (colName.includes('Actividad') || colName.includes('ACTIVIDAD')) return 'style="max-width: 250px; min-width: 200px; white-space: normal; line-height: 1.4;"';
             if (colName.includes('Observación') || colName.includes('Objeto') || colName.includes('PRODUCTO')) return 'style="max-width: 250px; min-width: 150px; white-space: normal; line-height: 1.4;"';
@@ -763,9 +755,7 @@
             document.getElementById('btnCrearNecesidad').style.display = (currentRole !== 'Invitado') ? 'flex' : 'none';
             const tbody = document.getElementById('tableBody');
             
-            let headerHTML = '<tr>';
-            // Se añade el encabezado de la columna de Acciones
-            headerHTML += `<th style="text-align: center; width: 50px;">Acción</th>`;
+            let headerHTML = '<tr><th style="text-align:center; width: 40px;">🗑️</th>';
             predefinedHeaders.forEach(col => {
                 let sortClass = sortCol === col ? 'active' : '';
                 headerHTML += `<th ${getColStyle(col)}>
@@ -790,15 +780,8 @@
                 const tr = document.createElement('tr');
                 tr.className = canEdit ? 'row-editable' : 'row-locked';
 
-                let rowHTML = ``;
+                let rowHTML = '<td style="text-align:center;">' + (canEdit ? `<button onclick="eliminarFila('Plan', ${index})" style="background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;padding:4px 6px;">X</button>` : '') + '</td>';
                 
-                // Celda de Acción (Papelera)
-                rowHTML += `<td style="text-align: center;">`;
-                if (canEdit) {
-                    rowHTML += `<button class="btn-delete" title="Eliminar Fila" onclick="eliminarFila('Plan', ${index})">🗑️</button>`;
-                }
-                rowHTML += `</td>`;
-
                 predefinedHeaders.forEach(colName => {
                     const cellValue = row[colName] !== undefined ? row[colName] : '';
                     const isProtected = colName.toLowerCase().includes('subsecretar') && currentRole !== 'Equipo de Contratación'; 
@@ -843,15 +826,12 @@
             const valProyAnexo = document.getElementById('filterProyectoAnexo')?.value || "";
 
             if (!valProyAnexo) {
-                // Hay que sumarle +1 al colspan por la nueva columna de acciones
                 tbody.innerHTML = `<tr><td colspan="${anexoHeaders.length + 1}" style="text-align: center; padding: 40px; color: var(--text-muted);">Elige un proyecto en el filtro de arriba para visualizar sus datos.</td></tr>`;
                 document.getElementById('summaryBarAnexo').innerText = `Total Visible Anexo Presupuestal: $ 0`;
                 return;
             }
 
-            let headerHTML = '<tr>';
-            // Se añade el encabezado de la columna de Acciones
-            headerHTML += `<th style="text-align: center; width: 50px;">Acción</th>`;
+            let headerHTML = '<tr><th style="text-align:center; width: 40px;">🗑️</th>';
             anexoHeaders.forEach(col => {
                 let displayCol = col === "VALIDADOR ¿REQUIERE CPC?_1" ? "VALIDADOR ¿REQUIERE CPC? (Copia)" : col;
                 let sortClass = sortCol === col ? 'active' : '';
@@ -873,15 +853,8 @@
                 const tr = document.createElement('tr');
                 tr.className = canEdit ? 'row-editable' : 'row-locked';
 
-                let rowHTML = ``;
+                let rowHTML = '<td style="text-align:center;">' + (canEdit ? `<button onclick="eliminarFila('Anexo', ${index})" style="background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;padding:4px 6px;">X</button>` : '') + '</td>';
                 
-                // Celda de Acción (Papelera)
-                rowHTML += `<td style="text-align: center;">`;
-                if (canEdit) {
-                    rowHTML += `<button class="btn-delete" title="Eliminar Fila" onclick="eliminarFila('Anexo', ${index})">🗑️</button>`;
-                }
-                rowHTML += `</td>`;
-
                 anexoHeaders.forEach(colName => {
                     const cellValue = row[colName] !== undefined ? row[colName] : '';
                     const isProtected = colName.toLowerCase().includes('subsecretar') && currentRole !== 'Equipo de Contratación'; 
