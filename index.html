@@ -227,8 +227,6 @@
         let mapasDependientes = {}; // Se llenará desde Google Sheets
 
         // Listas predeterminadas (se combinarán con las de la hoja 'Listas')
-        // AL ESTAR AQUÍ, GARANTIZAMOS QUE LA TABLA SEPA QUE DEBEN SER DESPLEGABLES, 
-        // INCLUSO SI NO LLEGAN DESDE GOOGLE SHEETS AUN.
         let listasDesplegables = {
             "Subsecretaría": ["SUBSEC FORMAC CIUDAD", "SUBSEC ORGANIZACION SOCIAL", "SUBSEC PLANEACION LOCAL Y PP", "UNIDAD ADMINISTRATIVA"],
             "Mes de Compra": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
@@ -237,7 +235,7 @@
             "Tipo de Bien": ["Misional", "Generico", "Servicio", "Obra"],
             "Modalidad": ["Contratación Directa", "Licitación Pública", "Mínima Cuantía", "Concurso de Méritos", "Selección Abreviada", "Subasta Inversa"],
             "VALIDADOR ¿REQUIERE CPC?": ["SI", "NO"],
-            "Proyecto": ["240182", "240183", "240184", "240185", "240186", "240187", "240188", "240189", "240192", "1000000"],
+            "Proyecto": [], // Arranca vacío, se llenará con la hoja 'Listas'
             "Posición Presupuestaría": [] // Arranca vacío, se llenará con la hoja 'Listas'
         };
 
@@ -267,13 +265,35 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
+                    // --- SISTEMA DE DIAGNÓSTICO: DETECTA SI EL SERVIDOR ES VIEJO ---
+                    if (result.listas === undefined || result.mapasDependientes === undefined) {
+                        showMsg("🚨 Servidor Desactualizado", "La web se conectó a tu Google Sheets, pero el servidor (Apps Script) no le envió las listas.\n\nEsto significa que Google sigue ejecutando una versión vieja de tu código. Debes ir a Apps Script, pegar el código más reciente y hacer clic en 'Implementar > Nueva Implementación'.");
+                    }
+
                     appData = result.planData || [];
                     anexoData = result.anexoData || [];
                     mapasDependientes = result.mapasDependientes || {};
                     
+                    // Lógica robusta para emparejar los nombres de las columnas de Excel sin importar tildes o espacios extras
                     if (result.listas) {
                         for (let key in result.listas) {
-                            listasDesplegables[key] = result.listas[key];
+                            let normKey = key.trim();
+                            // Quitamos acentos para comparar más fácil
+                            let keySinAcentos = normKey.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                            
+                            // Buscamos si existe alguna columna en nuestra lista de HTML que coincida
+                            let matchedHeader = Object.keys(listasDesplegables).find(k => 
+                                k.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === keySinAcentos
+                            );
+
+                            // Filtramos campos vacíos de Excel
+                            let opcionesLimpias = result.listas[key].filter(Boolean);
+
+                            if (matchedHeader) {
+                                listasDesplegables[matchedHeader] = opcionesLimpias;
+                            } else {
+                                listasDesplegables[normKey] = opcionesLimpias;
+                            }
                         }
                     }
                     
@@ -389,7 +409,6 @@
             const selEstado = document.getElementById('filterEstado');
             if (selProyecto) {
                 const currProy = selProyecto.value;
-                // La lista de proyectos ahora prioriza la hoja de Excel si existe, sino usa lo que hay en tabla
                 let opcionesProy = (listasDesplegables["Proyecto"] && listasDesplegables["Proyecto"].length > 0) ? listasDesplegables["Proyecto"] : Array.from(proyectos).sort();
                 selProyecto.innerHTML = '<option value="">Todos los Proyectos</option>' + opcionesProy.map(p => `<option value="${p}">${p}</option>`).join('');
                 if(opcionesProy.includes(currProy)) selProyecto.value = currProy;
@@ -568,12 +587,19 @@
                             let proyectoActual = String(row["Proyecto"] || "").trim();
                             let opcionesPermitidas = (mapasDependientes[depKey] && mapasDependientes[depKey][proyectoActual]) ? mapasDependientes[depKey][proyectoActual] : [];
                             
-                            let options = `<option value="">- Seleccionar -</option>` + opcionesPermitidas.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
+                            // Nuevo: si está vacío, avisa por qué
+                            let defaultText = !proyectoActual ? "- Elige un Proyecto -" : (opcionesPermitidas.length === 0 ? "- Sin datos en Anexo -" : "- Seleccionar -");
+                            let options = `<option value="">${defaultText}</option>` + opcionesPermitidas.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
+                            
                             rowHTML += `<td ${getColStyle(colName)}><select class="cell-input plan-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
 
-                        } else if (listasDesplegables[colName]) {
-                            // Lista desplegable normal
-                            let options = `<option value="">- Seleccionar -</option>` + listasDesplegables[colName].map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
+                        } else if (listasDesplegables[colName] !== undefined) {
+                            // Lista desplegable normal (Garantizado)
+                            let opcionesLista = listasDesplegables[colName] || [];
+                            // Nuevo: si la hoja "Listas" de Excel no tiene datos abajo del título, avisamos
+                            let defaultText = opcionesLista.length === 0 ? "- Vacío en Listas -" : "- Seleccionar -";
+                            let options = `<option value="">${defaultText}</option>` + opcionesLista.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
+                            
                             rowHTML += `<td ${getColStyle(colName)}><select class="cell-input plan-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
                         } else if (columnasMoneda.includes(colName)) {
                             rowHTML += `<td ${getColStyle(colName)}><input type="text" class="cell-input currency-input plan-input" data-index="${index}" data-col="${colName}" value="${(cellValue !== "" && !isNaN(cellValue)) ? formatMoneda(cellValue) : ""}"></td>`;
@@ -647,17 +673,22 @@
                                 let proyectoActual = String(row["Proyecto"] || "").trim();
                                 let opcionesPermitidas = (mapasDependientes[depKey] && mapasDependientes[depKey][proyectoActual]) ? mapasDependientes[depKey][proyectoActual] : [];
                                 
-                                let options = `<option value="">- Seleccionar -</option>` + opcionesPermitidas.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
+                                let defaultText = !proyectoActual ? "- Elige un Proyecto -" : (opcionesPermitidas.length === 0 ? "- Sin datos en Anexo -" : "- Seleccionar -");
+                                let options = `<option value="">${defaultText}</option>` + opcionesPermitidas.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
                                 rowHTML += `<td ${getColStyle(colName)}><select class="cell-input anexo-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
                             }
                             // Aquí hacemos que la columna del Anexo use la lista simple de "Posición Presupuestaría"
-                            else if (colName === "Clasificador por objeto de gasto (POSPRE)" && listasDesplegables["Posición Presupuestaría"]) {
-                                let options = `<option value="">- Seleccionar -</option>` + listasDesplegables["Posición Presupuestaría"].map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
+                            else if (colName === "Clasificador por objeto de gasto (POSPRE)" && listasDesplegables["Posición Presupuestaría"] !== undefined) {
+                                let opcionesLista = listasDesplegables["Posición Presupuestaría"] || [];
+                                let defaultText = opcionesLista.length === 0 ? "- Vacío en Listas -" : "- Seleccionar -";
+                                let options = `<option value="">${defaultText}</option>` + opcionesLista.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
                                 rowHTML += `<td ${getColStyle(colName)}><select class="cell-input anexo-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
                             }
-                            else if (listasDesplegables[colName.replace('_1', '')]) {
+                            else if (listasDesplegables[colName.replace('_1', '')] !== undefined) {
                                 let cleanCol = colName.replace('_1', '');
-                                let options = `<option value="">- Seleccionar -</option>` + listasDesplegables[cleanCol].map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
+                                let opcionesLista = listasDesplegables[cleanCol] || [];
+                                let defaultText = opcionesLista.length === 0 ? "- Vacío en Listas -" : "- Seleccionar -";
+                                let options = `<option value="">${defaultText}</option>` + opcionesLista.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
                                 rowHTML += `<td ${getColStyle(colName)}><select class="cell-input anexo-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
                             } else if (columnasMoneda.includes(colName)) {
                                 rowHTML += `<td ${getColStyle(colName)}><input type="text" class="cell-input currency-input anexo-input" data-index="${index}" data-col="${colName}" value="${(cellValue !== "" && !isNaN(cellValue)) ? formatMoneda(cellValue) : ""}"></td>`;
