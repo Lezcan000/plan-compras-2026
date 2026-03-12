@@ -212,14 +212,13 @@
         let anexoData = [];
 
         // Diccionario de Dependencias para saber qué "Mapa" de Excel corresponde a qué columna
+        // NOTA: Se eliminó "Posición Presupuestaría" de aquí para que sea tratada como una lista simple desde tu Excel.
         const dependenciasColumna = {
             // Plan de Compras
-            "Posición Presupuestaría": "Pospre",
             "Codigo Actividad  MGA": "ActividadMGA",
             "Actividad detallada": "Detalle",
             "Codigo producto MGA": "ProductoMGA",
             // Anexo Presupuestal
-            "Clasificador por objeto de gasto (POSPRE)": "Pospre",
             "ACTIVIDAD MGA": "ActividadMGA",
             "ACTIVIDADES DETALLADAS": "Detalle",
             "CÓDIGO PRODUCTO MGA": "ProductoMGA",
@@ -236,7 +235,8 @@
             "Unidad de Tiempo": ["D", "M", "A"],
             "Tipo de Bien": ["Misional", "Generico", "Servicio", "Obra"],
             "Modalidad": ["Contratación Directa", "Licitación Pública", "Mínima Cuantía", "Concurso de Méritos", "Selección Abreviada", "Subasta Inversa"],
-            "VALIDADOR ¿REQUIERE CPC?": ["SI", "NO"]
+            "VALIDADOR ¿REQUIERE CPC?": ["SI", "NO"],
+            "Proyecto": ["240182", "240183", "240184", "240185", "240186", "240187", "240188", "240189", "240192", "1000000"]
         };
 
         function updateSaveStatus(status) {
@@ -350,7 +350,7 @@
         const predefinedHeaders = ["Subsecretaría", "Tipo de Bien", "Necesidad", "Estudio Previo", "Objeto", "Modalidad", "Causal", "Mes de Compra", "Duración del Proyecto", "Unidad de Tiempo", "Fecha Inicio Ejecución", "Valor Unitario", "Proyecto", "Tipo de Recurso", "Posición Presupuestaría", "Fondo", "Observación", "Indicador Plan de Dllo (Solo producto)", "Codigo Actividad  MGA", "Actividad detallada", "Codigo producto MGA", "Codigo CPC", "ESTADO", "CDP", "Contrato Marco", "RP", "Contratista", "Técnico", "Juridico", "Logístico", "Supervisor Principal", "Supervisor Suplente", "Apoyo a la Supervisión Técnico", "Apoyo a la Supervisión Financiero", "Apoyo a la Supervisión Juridico", "Trasladar"];
         const anexoHeaders = ["Subsecretaría", "Proyecto", "CÓDIGO PRODUCTO MGA", "PRODUCTO MGA", "ACTIVIDAD MGA", "ACTIVIDADES DETALLADAS", "UNIDAD DE MEDIDA", "CANTIDAD", "COSTO UNITARIO", "COSTO TOTAL", "Clasificador por objeto de gasto (POSPRE)", "VALIDADOR ¿REQUIERE CPC?", "VALIDADOR ¿REQUIERE CPC?_1", "Clasificador CPC (Aplica solo para POSPRE en \"Adquisición diferentes de activos\": \"Materiales y suministros\" y \"Adquisición de servicios\")", "Validador sección CPC"];
         const columnasMoneda = ["Valor Unitario", "COSTO UNITARIO", "COSTO TOTAL"];
-        const columnasNumericas = ["Duración del Proyecto", "Necesidad", "Estudio Previo", "CDP", "RP", "CANTIDAD", "CÓDIGO PRODUCTO MGA"];
+        const columnasNumericas = ["Duración del Proyecto", "Necesidad", "Estudio Previo", "CDP", "RP", "CANTIDAD"];
         const columnasFecha = ["Fecha Inicio Ejecución"];
         const formatMoneda = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
 
@@ -556,7 +556,7 @@
                         let depKey = dependenciasColumna[colName];
                         if (depKey) {
                             // LÓGICA DE LISTA DESPLEGABLE DEPENDIENTE DEL PROYECTO
-                            let proyectoActual = row["Proyecto"] || "";
+                            let proyectoActual = String(row["Proyecto"] || "").trim();
                             let opcionesPermitidas = (mapasDependientes[depKey] && mapasDependientes[depKey][proyectoActual]) ? mapasDependientes[depKey][proyectoActual] : [];
                             
                             let options = `<option value="">- Seleccionar -</option>` + opcionesPermitidas.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
@@ -635,10 +635,15 @@
                             let depKey = dependenciasColumna[colName];
                             if (depKey) {
                                 // LÓGICA DE LISTA DEPENDIENTE
-                                let proyectoActual = row["Proyecto"] || "";
+                                let proyectoActual = String(row["Proyecto"] || "").trim();
                                 let opcionesPermitidas = (mapasDependientes[depKey] && mapasDependientes[depKey][proyectoActual]) ? mapasDependientes[depKey][proyectoActual] : [];
                                 
                                 let options = `<option value="">- Seleccionar -</option>` + opcionesPermitidas.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
+                                rowHTML += `<td ${getColStyle(colName)}><select class="cell-input anexo-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
+                            }
+                            // Aquí hacemos que la columna del Anexo use la lista simple de "Posición Presupuestaría"
+                            else if (colName === "Clasificador por objeto de gasto (POSPRE)" && listasDesplegables["Posición Presupuestaría"]) {
+                                let options = `<option value="">- Seleccionar -</option>` + listasDesplegables["Posición Presupuestaría"].map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
                                 rowHTML += `<td ${getColStyle(colName)}><select class="cell-input anexo-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
                             }
                             else if (listasDesplegables[colName.replace('_1', '')]) {
@@ -689,12 +694,10 @@
                         // Si cambia el Proyecto, limpiar las opciones dependientes viejas de esa fila
                         if (col === "Proyecto") {
                             if (dataRef === appData) {
-                                dataRef[rIndex]["Posición Presupuestaría"] = "";
                                 dataRef[rIndex]["Codigo Actividad  MGA"] = "";
                                 dataRef[rIndex]["Actividad detallada"] = "";
                                 dataRef[rIndex]["Codigo producto MGA"] = "";
                             } else {
-                                dataRef[rIndex]["Clasificador por objeto de gasto (POSPRE)"] = "";
                                 dataRef[rIndex]["ACTIVIDAD MGA"] = "";
                                 dataRef[rIndex]["ACTIVIDADES DETALLADAS"] = "";
                                 dataRef[rIndex]["CÓDIGO PRODUCTO MGA"] = "";
