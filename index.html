@@ -20,125 +20,40 @@
             --success: #16a34a;
             --warning: #f59e0b;
             --danger: #dc2626;
+            --info: #0ea5e9;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--background);
-            color: var(--text-main);
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
-            width: 100%;
-            background: var(--surface);
-            border-radius: 10px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 90vh;
-        }
-
-        .header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--surface);
-            z-index: 30;
-        }
-
-        .controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background); color: var(--text-main); margin: 0; padding: 20px; }
+        .container { width: 100%; background: var(--surface); border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); overflow: hidden; display: flex; flex-direction: column; height: 90vh; }
+        .header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--surface); z-index: 30; }
+        .controls { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+        
+        .btn { padding: 8px 16px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
         .btn-primary { background-color: var(--primary); color: white; }
         .btn-primary:hover { background-color: var(--primary-hover); }
         .btn-success { background-color: var(--success); color: white; }
         .btn-success:hover { background-color: #15803d; }
         .btn-warning { background-color: var(--warning); color: white; }
         .btn-warning:hover { background-color: #d97706; }
+        .btn-info { background-color: #f0f9ff; border: 1px solid var(--info); color: var(--info); }
+        .btn-info:hover { background-color: var(--info); color: white; }
         .btn-outline { background-color: transparent; border: 2px solid var(--primary); color: var(--primary); }
         .btn-outline:hover { background-color: var(--primary); color: white; }
         
-        input[type="file"] { display: none; }
-
-        .user-simulator {
-            background: #f8fafc;
-            padding: 10px 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        select {
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid var(--border);
-            font-weight: 500;
-            outline: none;
-        }
-
-        .table-wrapper {
-            overflow: auto;
-            flex-grow: 1;
-            scroll-behavior: smooth;
-        }
-
-        table {
-            border-collapse: collapse;
-            text-align: left;
-            white-space: nowrap;
-            width: 100%;
-        }
-
-        th {
-            background-color: #e2e8f0;
-            padding: 12px 16px;
-            font-size: 12px;
-            text-transform: uppercase;
-            color: #334155;
-            border-bottom: 2px solid var(--border);
-            border-right: 1px solid var(--border);
-            font-weight: 700;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
+        .user-simulator { background: #f8fafc; padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+        select { padding: 8px; border-radius: 4px; border: 1px solid var(--border); font-weight: 500; outline: none; }
+        
+        .table-wrapper { overflow: auto; flex-grow: 1; scroll-behavior: smooth; }
+        table { border-collapse: collapse; text-align: left; white-space: nowrap; width: 100%; }
+        th { background-color: #e2e8f0; padding: 12px 16px; font-size: 12px; text-transform: uppercase; color: #334155; border-bottom: 2px solid var(--border); border-right: 1px solid var(--border); font-weight: 700; position: sticky; top: 0; z-index: 10; }
+        
+        /* Primera columna sticky (Subsecretaría) */
         th:nth-child(1), td:nth-child(1) { position: sticky; left: 0; z-index: 20; }
         th:nth-child(1) { z-index: 30; }
-        
-        td {
-            padding: 10px 16px;
-            border-bottom: 1px solid var(--border);
-            border-right: 1px solid var(--border);
-            font-size: 13px;
-        }
+        td { padding: 10px 16px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); font-size: 13px; }
 
         .row-locked { background-color: var(--locked-bg); color: var(--text-muted); }
         .row-locked td:nth-child(1) { background-color: #e2e8f0; font-weight: 600; }
-        
         .row-editable { background-color: var(--editable-bg); }
         .row-editable td:nth-child(1) { background-color: #bfdbfe; font-weight: 600; }
         .row-editable td[contenteditable="true"]:hover { background-color: #dbeafe; cursor: text; outline: 1px dashed var(--primary); }
@@ -148,69 +63,28 @@
         .sort-icon { color: #94a3b8; font-size: 10px; }
         .sort-icon.active { color: var(--primary); font-weight: bold; }
 
-        .cell-input {
-            width: 100%;
-            border: 1px solid transparent;
-            background: transparent;
-            font-family: inherit;
-            font-size: 13px;
-            color: inherit;
-            outline: none;
-            padding: 4px;
-            border-radius: 4px;
-        }
+        .cell-input { width: 100%; border: 1px solid transparent; background: transparent; font-family: inherit; font-size: 13px; color: inherit; outline: none; padding: 4px; border-radius: 4px; }
         .cell-input:hover { border: 1px dashed var(--primary); background: #dbeafe; }
         .cell-input:focus { border: 1px solid var(--primary); background: #fff; }
         select.cell-input { cursor: pointer; }
 
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-        }
-
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+        .modal { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .modal-large { width: 650px; text-align: left; }
         .modal-large h3 { color: var(--warning); margin-top: 0; }
         .modal-large pre { background: #fffbeb; color: #b45309; padding: 15px; border-radius: 6px; font-size: 12px; white-space: pre-wrap; max-height: 300px; overflow-y: auto; font-family: monospace; border: 1px solid #fcd34d; }
-
-        .modal input[type="password"] {
-            width: 100%;
-            padding: 10px;
-            margin: 15px 0;
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-
+        .modal input[type="password"] { width: 100%; padding: 10px; margin: 15px 0; border: 1px solid var(--border); border-radius: 5px; box-sizing: border-box; }
         .error-msg { color: #dc2626; font-size: 12px; margin-bottom: 10px; display: none; }
         .view-hidden { display: none !important; }
 
-        /* Estilo para el indicador de guardado automático */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            background: #e2e8f0;
-            color: #475569;
-            transition: all 0.3s;
-        }
+        .status-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #e2e8f0; color: #475569; transition: all 0.3s; }
         .status-saving { background: #fef08a; color: #b45309; }
+        .status-loading { background: #e0f2fe; color: #0284c7; }
         .status-saved { background: #dcfce7; color: #166534; }
         .status-error { background: #fee2e2; color: #991b1b; }
+        
+        .btn-delete { background-color: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 0.2s; }
+        .btn-delete:hover { background-color: #dc2626; }
     </style>
 </head>
 <body>
@@ -220,30 +94,18 @@
             <div>
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <h2 style="margin: 0; color: #0f172a;">Plan de Compras 2026</h2>
-                    <span id="saveStatus1" class="status-badge">☁️ Sincronizado</span>
+                    <span id="saveStatus1" class="status-badge status-loading">⏳ Conectando...</span>
                 </div>
                 <div id="summaryBar" style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">
-                    Cargando datos...
+                    Sincronizando con Google Sheets...
                 </div>
             </div>
             
             <div class="controls">
-                <button class="btn btn-outline" onclick="switchView('Anexo')">
-                    📄 Ir a Anexo Presupuestal
-                </button>
-
-                <button id="btnCrearNecesidad" class="btn btn-warning" onclick="crearNecesidad()" style="display: none;">
-                    ➕ Crear necesidad
-                </button>
-
-                <label class="btn btn-primary" title="Cargar archivo Excel localmente">
-                    📂 Cargar Plan
-                    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" onclick="return checkUploadPermissions(event)">
-                </label>
-                
-                <button class="btn btn-success" onclick="exportData('Plan')">
-                    💾 Descargar Excel
-                </button>
+                <button class="btn btn-outline" onclick="switchView('Anexo')">📄 Ir a Anexo Presupuestal</button>
+                <button class="btn btn-info" onclick="cargarDatosDesdeGoogle()">🔄 Recargar de Sheets</button>
+                <button id="btnCrearNecesidad" class="btn btn-warning" onclick="crearNecesidad()" style="display: none;">➕ Crear necesidad</button>
+                <button class="btn btn-success" onclick="exportData('Plan')">💾 Descargar Excel</button>
 
                 <div class="user-simulator">
                     <label for="roleSelector"><strong>👤 Rol:</strong></label>
@@ -273,7 +135,7 @@
             <table id="dataTable">
                 <thead id="tableHead"></thead>
                 <tbody id="tableBody">
-                    <tr><td colspan="38" style="text-align: center; padding: 40px;">Cargando datos...</td></tr>
+                    <tr><td colspan="37" style="text-align: center; padding: 40px;">Descargando datos desde la nube...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -284,69 +146,37 @@
             <div>
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <h2 style="margin: 0; color: #0f172a;">Anexo Presupuestal</h2>
-                    <span id="saveStatus2" class="status-badge">☁️ Sincronizado</span>
+                    <span id="saveStatus2" class="status-badge status-loading">⏳ Conectando...</span>
                 </div>
                 <div id="summaryBarAnexo" style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">
-                    Cargando datos...
+                    Sincronizando con Google Sheets...
                 </div>
             </div>
             
             <div class="controls">
-                <button class="btn btn-outline" onclick="switchView('Plan')">
-                    ⬅️ Volver al Plan de Compras
-                </button>
-
-                <div style="display: flex; flex-direction: column; gap: 4px; background: #f8fafc; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);">
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <span style="font-size: 12px; font-weight: 600;">Subir a Proyecto:</span>
-                        <select id="selectProyectoCarga" style="padding: 4px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
-                            <option value="240182">240182 - Organizaciones</option>
-                            <option value="240183">240183 - N. Expresiones</option>
-                            <option value="240184">240184 - JAL</option>
-                            <option value="240185">240185 - Seg. PP</option>
-                            <option value="240186">240186 - Control Social</option>
-                            <option value="240187">240187 - Formación</option>
-                            <option value="240188">240188 - JAC</option>
-                            <option value="240189">240189 - Impresión</option>
-                            <option value="240192">240192 - Mantenimiento</option>
-                            <option value="1000000">1000000 - Funcionamiento</option>
-                        </select>
-                        <label class="btn btn-primary" style="margin: 0; padding: 4px 10px; font-size: 12px;">
-                            📂 Cargar Anexo
-                            <input type="file" id="fileInputAnexo" accept=".xlsx, .xls, .csv" onclick="return checkUploadPermissions(event)">
-                        </label>
-                    </div>
-                    <label style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                        <input type="checkbox" id="checkReplace" checked> Reemplazar datos del proyecto si existen
-                    </label>
-                </div>
-
-                <button id="btnCrearFilaAnexo" class="btn btn-warning" onclick="crearFilaAnexo()" style="display: none;">
-                    ➕ Añadir Fila
-                </button>
-                
-                <button class="btn btn-success" onclick="exportData('Anexo')">
-                    💾 Descargar Excel
-                </button>
+                <button class="btn btn-outline" onclick="switchView('Plan')">⬅️ Volver al Plan</button>
+                <button class="btn btn-info" onclick="cargarDatosDesdeGoogle()">🔄 Recargar de Sheets</button>
+                <button id="btnCrearFilaAnexo" class="btn btn-warning" onclick="crearFilaAnexo()" style="display: none;">➕ Añadir Fila</button>
+                <button class="btn btn-success" onclick="exportData('Anexo')">💾 Descargar Excel</button>
             </div>
         </div>
 
         <div class="filters-bar" style="padding: 12px 20px; background: #e0e7ff; border-bottom: 1px solid var(--border); display: flex; gap: 20px; align-items: center; z-index: 25;">
             <strong style="font-size: 14px; color: var(--primary);">👀 Viendo Proyecto:</strong>
-            <select id="filterProyectoAnexo" onchange="onProyectoAnexoChange()" style="padding: 6px 10px; border: 1px solid var(--primary); border-radius: 4px; font-size: 13px; min-width: 150px; background: white; font-weight: bold;">
-                </select>
+            <select id="filterProyectoAnexo" onchange="onProyectoAnexoChange()" style="padding: 6px 10px; border: 1px solid var(--primary); border-radius: 4px; font-size: 13px; min-width: 150px; background: white; font-weight: bold;"></select>
         </div>
 
         <div class="table-wrapper">
             <table id="anexoTable">
                 <thead id="anexoTableHead"></thead>
                 <tbody id="anexoTableBody">
-                    <tr><td colspan="16" style="text-align: center; padding: 40px;">Por favor, carga un archivo Excel para comenzar.</td></tr>
+                    <tr><td colspan="16" style="text-align: center; padding: 40px;">Descargando datos desde la nube...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
+    <!-- Modales -->
     <div class="modal-overlay" id="msgModal">
         <div class="modal" style="width: 400px; text-align: center;">
             <h3 id="msgModalTitle" style="margin-top: 0; color: var(--text-main);">Alerta</h3>
@@ -373,7 +203,7 @@
     <div class="modal-overlay" id="validationModal">
         <div class="modal modal-large">
             <h3>⚠️ Alerta de Google Sheets</h3>
-            <p style="font-size: 14px; color: var(--text-muted);">Los datos se guardaron, pero la tabla dinámica de Google Sheets (TD Plan de compras POSPRE) reporta las siguientes diferencias:</p>
+            <p style="font-size: 14px; color: var(--text-muted);">Los datos se guardaron, pero la tabla dinámica de Google Sheets (TD Plan de compras POSPRE) reporta diferencias:</p>
             <pre id="validationErrors"></pre>
             <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
                 <button class="btn btn-primary" onclick="document.getElementById('validationModal').style.display='none'">Cerrar</button>
@@ -383,12 +213,14 @@
 
     <script>
         // =========================================================
-        // MOTOR DE GUARDADO AUTOMÁTICO EN LA NUBE (DEBOUNCE)
+        // URL DE TU GOOGLE APPS SCRIPT
         // =========================================================
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyhcnY08HJKruT5flqsgFrNsfB29IxLf5Rt2i8-78tvhJxoUykTy6RzdM1KH0bej7w/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyXsWykHXt4DQGvorZFRC2CzX_Up8_grHIPV4d2BQePJIewFvyPsGLigjoT7eeWn1U/exec";
         
         let saveTimeoutId = null;
-        let currentView = 'Plan'; // Rastreador de la vista actual
+        let currentView = 'Plan'; 
+        let appData = [];
+        let anexoData = [];
 
         function updateSaveStatus(status) {
             const s1 = document.getElementById('saveStatus1');
@@ -396,30 +228,50 @@
             let className = "status-badge";
             let text = "";
 
-            if (status === 'saving') {
-                className += " status-saving"; text = "⏳ Guardando...";
-            } else if (status === 'saved') {
-                className += " status-saved"; text = "✅ Guardado";
-            } else if (status === 'error') {
-                className += " status-error"; text = "❌ Error de conexión";
-            } else if (status === 'warning') {
-                className += " status-error"; text = "⚠️ Diferencias en Sheets";
-            }
+            if (status === 'saving') { className += " status-saving"; text = "⏳ Guardando..."; } 
+            else if (status === 'loading') { className += " status-loading"; text = "🔄 Sincronizando..."; }
+            else if (status === 'saved') { className += " status-saved"; text = "✅ Sincronizado"; } 
+            else if (status === 'error') { className += " status-error"; text = "❌ Error"; } 
+            else if (status === 'warning') { className += " status-error"; text = "⚠️ Diferencias"; }
 
             if(s1) { s1.className = className; s1.innerText = text; }
             if(s2) { s2.className = className; s2.innerText = text; }
         }
 
-        // Función que se llama ante CUALQUIER cambio para programar un guardado
-        function triggerAutoSave() {
-            if (currentRole === 'Invitado') return; // Solo Lectura no guarda
+        // =========================================================
+        // CARGAR DATOS DESDE GOOGLE SHEETS AL INICIAR
+        // =========================================================
+        async function cargarDatosDesdeGoogle() {
+            updateSaveStatus('loading');
+            try {
+                const response = await fetch(WEB_APP_URL);
+                const result = await response.json();
 
-            updateSaveStatus('saving');
-            
-            // Si ya había un guardado programado, lo cancelamos y esperamos 2.5 segundos más
-            if (saveTimeoutId) {
-                clearTimeout(saveTimeoutId);
+                if (result.status === 'success') {
+                    appData = result.planData || [];
+                    anexoData = result.anexoData || [];
+                    
+                    updateFilterOptions();
+                    renderTable();
+                    renderAnexoTable();
+                    updateSaveStatus('saved');
+                } else {
+                    updateSaveStatus('error');
+                    console.error(result.message);
+                }
+            } catch (error) {
+                updateSaveStatus('error');
+                console.error("Error al descargar de Google:", error);
             }
+        }
+
+        // =========================================================
+        // GUARDAR DATOS HACIA GOOGLE SHEETS (DEBOUNCE)
+        // =========================================================
+        function triggerAutoSave() {
+            if (currentRole === 'Invitado') return; 
+            updateSaveStatus('saving');
+            if (saveTimeoutId) clearTimeout(saveTimeoutId);
             
             saveTimeoutId = setTimeout(() => {
                 ejecutarGuardadoSilencioso();
@@ -430,36 +282,25 @@
             try {
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
-                    body: JSON.stringify({
-                        action: 'validarYGuardar',
-                        planData: appData,
-                        anexoData: anexoData
-                    })
+                    body: JSON.stringify({ action: 'validarYGuardar', planData: appData, anexoData: anexoData })
                 });
-
                 const result = await response.json();
 
                 if (result.status === 'success') {
                     updateSaveStatus('saved');
                 } else if (result.status === 'warning') {
                     updateSaveStatus('warning');
-                    
-                    // MODIFICACIÓN: Solo mostrar el pop-up de alerta si el usuario está en la vista del Anexo
                     if (currentView === 'Anexo') {
                         document.getElementById('validationErrors').innerText = result.errores.join("\n");
                         document.getElementById('validationModal').style.display = 'flex';
                     }
                 } else {
                     updateSaveStatus('error');
-                    console.error("Error del servidor:", result.message);
                 }
-
             } catch (error) {
                 updateSaveStatus('error');
-                console.error("Error de conexión:", error);
             }
         }
-
 
         // --- FUNCIONES UI GENÉRICAS ---
         function showMsg(title, body) {
@@ -468,18 +309,8 @@
             document.getElementById('msgModal').style.display = 'flex';
         }
 
-        function checkUploadPermissions(e) {
-            if (currentRole === 'Invitado') {
-                e.preventDefault();
-                showMsg("Acceso Denegado", "Los usuarios de Solo Lectura no pueden cargar archivos.");
-                return false;
-            }
-            return true;
-        }
-
         function switchView(viewName) {
-            currentView = viewName; // Actualizar el rastreador de vista
-            
+            currentView = viewName; 
             if (viewName === 'Anexo') {
                 document.getElementById('viewPlanCompras').classList.add('view-hidden');
                 document.getElementById('viewAnexoPresupuestal').classList.remove('view-hidden');
@@ -492,30 +323,11 @@
         }
 
         // --- ESTRUCTURAS ---
-        const predefinedHeaders = [
-            "Subsecretaría", "Tipo de Bien", "Necesidad", "Estudio Previo", "Objeto", 
-            "Modalidad", "Causal", "Mes de Compra", "Duración del Proyecto", "Unidad de Tiempo", 
-            "Fecha Inicio Ejecución", "Valor Unitario", "Proyecto", "Tipo de Recurso", 
-            "Posición Presupuestaría", "Fondo", "Observación", "Indicador Plan de Dllo (Solo producto)", 
-            "Codigo Actividad  MGA", "Actividad detallada", "Codigo producto MGA", "Codigo CPC", 
-            "ESTADO", "CDP", "Contrato Marco", "RP", "Contratista", "Técnico", "Juridico", 
-            "Logístico", "Supervisor Principal", "Supervisor Suplente", "Apoyo a la Supervisión Técnico", 
-            "Apoyo a la Supervisión Financiero", "Apoyo a la Supervisión Juridico", "Trasladar"
-        ];
-
-        const anexoHeaders = [
-            "Subsecretaría", "Proyecto", "CÓDIGO PRODUCTO MGA", "PRODUCTO MGA", "ACTIVIDAD MGA", "ACTIVIDADES DETALLADAS", 
-            "UNIDAD DE MEDIDA", "CANTIDAD", "COSTO UNITARIO", "COSTO TOTAL", 
-            "Clasificador por objeto de gasto (POSPRE)", "VALIDADOR ¿REQUIERE CPC?", 
-            "VALIDADOR ¿REQUIERE CPC?_1", 
-            "Clasificador CPC (Aplica solo para POSPRE en \"Adquisición diferentes de activos\": \"Materiales y suministros\" y \"Adquisición de servicios\")", 
-            "Validador sección CPC"
-        ];
-
+        const predefinedHeaders = ["Subsecretaría", "Tipo de Bien", "Necesidad", "Estudio Previo", "Objeto", "Modalidad", "Causal", "Mes de Compra", "Duración del Proyecto", "Unidad de Tiempo", "Fecha Inicio Ejecución", "Valor Unitario", "Proyecto", "Tipo de Recurso", "Posición Presupuestaría", "Fondo", "Observación", "Indicador Plan de Dllo (Solo producto)", "Codigo Actividad  MGA", "Actividad detallada", "Codigo producto MGA", "Codigo CPC", "ESTADO", "CDP", "Contrato Marco", "RP", "Contratista", "Técnico", "Juridico", "Logístico", "Supervisor Principal", "Supervisor Suplente", "Apoyo a la Supervisión Técnico", "Apoyo a la Supervisión Financiero", "Apoyo a la Supervisión Juridico", "Trasladar"];
+        const anexoHeaders = ["Subsecretaría", "Proyecto", "CÓDIGO PRODUCTO MGA", "PRODUCTO MGA", "ACTIVIDAD MGA", "ACTIVIDADES DETALLADAS", "UNIDAD DE MEDIDA", "CANTIDAD", "COSTO UNITARIO", "COSTO TOTAL", "Clasificador por objeto de gasto (POSPRE)", "VALIDADOR ¿REQUIERE CPC?", "VALIDADOR ¿REQUIERE CPC?_1", "Clasificador CPC (Aplica solo para POSPRE en \"Adquisición diferentes de activos\": \"Materiales y suministros\" y \"Adquisición de servicios\")", "Validador sección CPC"];
         const columnasMoneda = ["Valor Unitario", "COSTO UNITARIO", "COSTO TOTAL"];
         const columnasNumericas = ["Duración del Proyecto", "Necesidad", "Estudio Previo", "CDP", "RP", "CANTIDAD", "CÓDIGO PRODUCTO MGA"];
         const columnasFecha = ["Fecha Inicio Ejecución"];
-
         const formatMoneda = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
 
         function toYYYYMMDD(val) {
@@ -551,7 +363,6 @@
             "Proyecto": ["240182", "240183", "240184", "240185", "240186", "240187", "240188", "240189", "240192", "1000000"]
         };
 
-        // --- ACTUALIZADOR DE FILTROS ---
         function updateFilterOptions() {
             const proyectos = new Set();
             const estados = new Set();
@@ -589,13 +400,9 @@
             }
         }
 
-        let sortCol = null;
-        let sortAsc = true;
-
+        let sortCol = null; let sortAsc = true;
         function toggleSort(col, isAnexo = false) {
-            if (sortCol === col) sortAsc = !sortAsc;
-            else { sortCol = col; sortAsc = true; }
-            
+            if (sortCol === col) sortAsc = !sortAsc; else { sortCol = col; sortAsc = true; }
             let dataArray = isAnexo ? anexoData : appData;
             dataArray.sort((a, b) => {
                 let valA = a[col] !== undefined ? a[col] : "";
@@ -604,8 +411,7 @@
                     valA = valA === "" ? -Infinity : Number(valA);
                     valB = valB === "" ? -Infinity : Number(valB);
                 } else {
-                    valA = String(valA).toLowerCase();
-                    valB = String(valB).toLowerCase();
+                    valA = String(valA).toLowerCase(); valB = String(valB).toLowerCase();
                 }
                 if (valA < valB) return sortAsc ? -1 : 1;
                 if (valA > valB) return sortAsc ? 1 : -1;
@@ -615,24 +421,11 @@
         }
 
         // --- ROLES Y PERMISOS ---
-        const rolePasswords = {
-            "Equipo de Contratación": "admin123", 
-            "Subsecretaría de Formación y Participación Ciudadana": "formacion2025",
-            "Subsecretaría de Organización Social": "social2025",
-            "Subsecretaria de Planeación Local y PP": "planeacion2025",
-            "Unidad Administrativa": "unidad2025"
-        };
-
-        let currentRole = "Invitado";
-        let pendingRole = "";
-        let roleSelect = document.getElementById('roleSelector');
+        const rolePasswords = { "Equipo de Contratación": "admin123", "Subsecretaría de Formación y Participación Ciudadana": "formacion2025", "Subsecretaría de Organización Social": "social2025", "Subsecretaria de Planeación Local y PP": "planeacion2025", "Unidad Administrativa": "unidad2025" };
+        let currentRole = "Invitado"; let pendingRole = ""; let roleSelect = document.getElementById('roleSelector');
         
         roleSelect.addEventListener('change', (e) => {
-            if (e.target.value === "Invitado") {
-                currentRole = "Invitado";
-                renderTable(); renderAnexoTable();
-                return;
-            }
+            if (e.target.value === "Invitado") { currentRole = "Invitado"; renderTable(); renderAnexoTable(); return; }
             pendingRole = e.target.value;
             document.getElementById('modalRoleName').innerText = `Rol: ${pendingRole}`;
             document.getElementById('passwordInput').value = '';
@@ -646,15 +439,10 @@
                 currentRole = pendingRole;
                 document.getElementById('passwordModal').style.display = 'none';
                 renderTable(); renderAnexoTable();
-            } else {
-                document.getElementById('errorMsg').style.display = 'block';
-            }
+            } else { document.getElementById('errorMsg').style.display = 'block'; }
         }
 
-        function cancelRoleChange() {
-            document.getElementById('passwordModal').style.display = 'none';
-            roleSelect.value = currentRole;
-        }
+        function cancelRoleChange() { document.getElementById('passwordModal').style.display = 'none'; roleSelect.value = currentRole; }
 
         function getSubsecretariaFromRole(roleName) {
             if (roleName.includes("Formación")) return "SUBSEC FORMAC CIUDAD";
@@ -678,70 +466,30 @@
 
         function crearNecesidad() {
             if (currentRole === 'Invitado') return;
-            const nuevaFila = {};
-            predefinedHeaders.forEach(col => nuevaFila[col] = "");
-            
-            const subsec = getSubsecretariaFromRole(currentRole);
-            if (subsec) nuevaFila["Subsecretaría"] = subsec;
-            
-            // Insertar al final
-            appData.push(nuevaFila);
-            updateFilterOptions();
-            renderTable();
-            
-            // Bajar la pantalla para ver la fila nueva
-            setTimeout(() => {
-                const wrapper = document.querySelector('#viewPlanCompras .table-wrapper');
-                wrapper.scrollTop = wrapper.scrollHeight;
-            }, 100);
-
+            const nuevaFila = {}; predefinedHeaders.forEach(col => nuevaFila[col] = "");
+            const subsec = getSubsecretariaFromRole(currentRole); if (subsec) nuevaFila["Subsecretaría"] = subsec;
+            appData.push(nuevaFila); updateFilterOptions(); renderTable();
+            setTimeout(() => { const wrapper = document.querySelector('#viewPlanCompras .table-wrapper'); wrapper.scrollTop = wrapper.scrollHeight; }, 100);
             triggerAutoSave(); 
         }
 
         function crearFilaAnexo() {
             if (currentRole === 'Invitado') return;
-            const nuevaFila = {};
-            anexoHeaders.forEach(col => nuevaFila[col] = "");
-            
-            const subsec = getSubsecretariaFromRole(currentRole);
-            if (subsec) nuevaFila["Subsecretaría"] = subsec;
-            
-            const valProyAnexo = document.getElementById('filterProyectoAnexo')?.value || "";
-            if (valProyAnexo) nuevaFila["Proyecto"] = valProyAnexo;
-
-            // Insertar al final
-            anexoData.push(nuevaFila);
-            updateFilterOptions();
-            renderAnexoTable();
-
-            // Bajar la pantalla para ver la fila nueva
-            setTimeout(() => {
-                const wrapper = document.querySelector('#viewAnexoPresupuestal .table-wrapper');
-                wrapper.scrollTop = wrapper.scrollHeight;
-            }, 100);
-
+            const nuevaFila = {}; anexoHeaders.forEach(col => nuevaFila[col] = "");
+            const subsec = getSubsecretariaFromRole(currentRole); if (subsec) nuevaFila["Subsecretaría"] = subsec;
+            const valProyAnexo = document.getElementById('filterProyectoAnexo')?.value || ""; if (valProyAnexo) nuevaFila["Proyecto"] = valProyAnexo;
+            anexoData.push(nuevaFila); updateFilterOptions(); renderAnexoTable();
+            setTimeout(() => { const wrapper = document.querySelector('#viewAnexoPresupuestal .table-wrapper'); wrapper.scrollTop = wrapper.scrollHeight; }, 100);
             triggerAutoSave(); 
         }
 
-        // FUNCION PARA ELIMINAR FILAS
         function eliminarFila(type, index) {
             if (confirm("¿Estás seguro de eliminar esta fila?")) {
-                if (type === 'Plan') {
-                    appData.splice(index, 1);
-                    updateFilterOptions();
-                    renderTable();
-                } else {
-                    anexoData.splice(index, 1);
-                    updateFilterOptions();
-                    renderAnexoTable();
-                }
+                if (type === 'Plan') { appData.splice(index, 1); updateFilterOptions(); renderTable(); } 
+                else { anexoData.splice(index, 1); updateFilterOptions(); renderAnexoTable(); }
                 triggerAutoSave();
             }
         }
-
-        // --- LÓGICAS DE DATOS DE LA TABLA ---
-        let appData = [];
-        let anexoData = [];
 
         const getColStyle = (colName) => {
             if (colName.includes('Actividad') || colName.includes('ACTIVIDAD')) return 'style="max-width: 250px; min-width: 200px; white-space: normal; line-height: 1.4;"';
@@ -751,19 +499,24 @@
         };
 
         function renderTable() {
-            if(appData.length === 0) return;
             document.getElementById('btnCrearNecesidad').style.display = (currentRole !== 'Invitado') ? 'flex' : 'none';
             const tbody = document.getElementById('tableBody');
             
-            let headerHTML = '<tr><th style="text-align:center; width: 40px;">🗑️</th>';
+            let headerHTML = '<tr>';
             predefinedHeaders.forEach(col => {
                 let sortClass = sortCol === col ? 'active' : '';
-                headerHTML += `<th ${getColStyle(col)}>
-                    <div class="sort-container" onclick="toggleSort('${col}')">${col} <span class="sort-icon ${sortClass}">↕</span></div>
-                </th>`;
+                headerHTML += `<th ${getColStyle(col)}><div class="sort-container" onclick="toggleSort('${col}')">${col} <span class="sort-icon ${sortClass}">↕</span></div></th>`;
             });
-            document.getElementById('tableHead').innerHTML = headerHTML + '</tr>';
+            // Columna de eliminar al final
+            headerHTML += '<th style="text-align:center; width: 40px;">🗑️</th></tr>';
+            document.getElementById('tableHead').innerHTML = headerHTML;
             tbody.innerHTML = '';
+
+            if(appData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="37" style="text-align: center; padding: 40px; color: var(--text-muted);">No hay datos. Crea una fila para comenzar.</td></tr>`;
+                document.getElementById('summaryBar').innerText = "0 registros";
+                return;
+            }
 
             let visibleCount = 0, totalValor = 0;
             const valProy = document.getElementById('filterProyecto')?.value || "";
@@ -780,8 +533,7 @@
                 const tr = document.createElement('tr');
                 tr.className = canEdit ? 'row-editable' : 'row-locked';
 
-                let rowHTML = '<td style="text-align:center;">' + (canEdit ? `<button onclick="eliminarFila('Plan', ${index})" style="background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;padding:4px 6px;">X</button>` : '') + '</td>';
-                
+                let rowHTML = ``;
                 predefinedHeaders.forEach(colName => {
                     const cellValue = row[colName] !== undefined ? row[colName] : '';
                     const isProtected = colName.toLowerCase().includes('subsecretar') && currentRole !== 'Equipo de Contratación'; 
@@ -806,55 +558,51 @@
                         rowHTML += `<td ${getColStyle(colName)}>${displayVal}</td>`;
                     }
                 });
-                tr.innerHTML = rowHTML;
-                tbody.appendChild(tr);
+
+                // Botón de eliminar al final de la fila
+                rowHTML += '<td style="text-align:center;">' + (canEdit ? `<button class="btn-delete" title="Eliminar fila" onclick="eliminarFila('Plan', ${index})">❌</button>` : '') + '</td>';
+
+                tr.innerHTML = rowHTML; tbody.appendChild(tr);
             });
 
             document.getElementById('summaryBar').innerText = `Mostrando ${visibleCount} de ${appData.length} registros | Suma visible: ${formatMoneda(totalValor)}`;
             attachListeners('plan-input', appData, renderTable);
         }
 
-        function onProyectoAnexoChange() {
-            renderAnexoTable();
-        }
+        function onProyectoAnexoChange() { renderAnexoTable(); }
 
         function renderAnexoTable() {
-            if(anexoData.length === 0) return;
             document.getElementById('btnCrearFilaAnexo').style.display = (currentRole !== 'Invitado') ? 'flex' : 'none';
             const tbody = document.getElementById('anexoTableBody');
-            
             const valProyAnexo = document.getElementById('filterProyectoAnexo')?.value || "";
 
-            if (!valProyAnexo) {
-                tbody.innerHTML = `<tr><td colspan="${anexoHeaders.length + 1}" style="text-align: center; padding: 40px; color: var(--text-muted);">Elige un proyecto en el filtro de arriba para visualizar sus datos.</td></tr>`;
+            let headerHTML = '<tr>';
+            anexoHeaders.forEach(col => {
+                let displayCol = col === "VALIDADOR ¿REQUIERE CPC?_1" ? "VALIDADOR ¿REQUIERE CPC? (Copia)" : col;
+                let sortClass = sortCol === col ? 'active' : '';
+                headerHTML += `<th ${getColStyle(col)}><div class="sort-container" onclick="toggleSort('${col}', true)">${displayCol} <span class="sort-icon ${sortClass}">↕</span></div></th>`;
+            });
+            // Columna de eliminar al final
+            headerHTML += '<th style="text-align:center; width: 40px;">🗑️</th></tr>';
+            document.getElementById('anexoTableHead').innerHTML = headerHTML;
+            tbody.innerHTML = '';
+
+            if(anexoData.length === 0 || !valProyAnexo) {
+                tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; padding: 40px; color: var(--text-muted);">No hay datos para este proyecto o el anexo está vacío.</td></tr>`;
                 document.getElementById('summaryBarAnexo').innerText = `Total Visible Anexo Presupuestal: $ 0`;
                 return;
             }
 
-            let headerHTML = '<tr><th style="text-align:center; width: 40px;">🗑️</th>';
-            anexoHeaders.forEach(col => {
-                let displayCol = col === "VALIDADOR ¿REQUIERE CPC?_1" ? "VALIDADOR ¿REQUIERE CPC? (Copia)" : col;
-                let sortClass = sortCol === col ? 'active' : '';
-                headerHTML += `<th ${getColStyle(col)}>
-                    <div class="sort-container" onclick="toggleSort('${col}', true)">${displayCol} <span class="sort-icon ${sortClass}">↕</span></div>
-                </th>`;
-            });
-            document.getElementById('anexoTableHead').innerHTML = headerHTML + '</tr>';
-            tbody.innerHTML = '';
-
             let totalValor = 0;
-            
             anexoData.forEach((row, index) => {
                 if (String(row["Proyecto"]) !== String(valProyAnexo)) return;
-
                 if (!isNaN(row["COSTO TOTAL"]) && row["COSTO TOTAL"] !== "") totalValor += Number(row["COSTO TOTAL"]);
 
                 const canEdit = checkPermissions(row["Subsecretaría"], currentRole);
                 const tr = document.createElement('tr');
                 tr.className = canEdit ? 'row-editable' : 'row-locked';
 
-                let rowHTML = '<td style="text-align:center;">' + (canEdit ? `<button onclick="eliminarFila('Anexo', ${index})" style="background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;padding:4px 6px;">X</button>` : '') + '</td>';
-                
+                let rowHTML = ``;
                 anexoHeaders.forEach(colName => {
                     const cellValue = row[colName] !== undefined ? row[colName] : '';
                     const isProtected = colName.toLowerCase().includes('subsecretar') && currentRole !== 'Equipo de Contratación'; 
@@ -877,8 +625,11 @@
                         rowHTML += `<td ${getColStyle(colName)}>${columnasMoneda.includes(colName) && cellValue !== "" ? formatMoneda(cellValue) : cellValue}</td>`;
                     }
                 });
-                tr.innerHTML = rowHTML;
-                tbody.appendChild(tr);
+
+                // Botón de eliminar al final de la fila
+                rowHTML += '<td style="text-align:center;">' + (canEdit ? `<button class="btn-delete" title="Eliminar fila" onclick="eliminarFila('Anexo', ${index})">❌</button>` : '') + '</td>';
+
+                tr.innerHTML = rowHTML; tbody.appendChild(tr);
             });
 
             document.getElementById('summaryBarAnexo').innerText = `Total Visible Anexo Presupuestal: ${formatMoneda(totalValor)}`;
@@ -900,152 +651,39 @@
                     let newValue = e.target.value !== undefined ? e.target.value : e.target.innerText.trim();
                     
                     if (isCurrency) newValue = newValue.replace(/\D/g, ''); 
-                    if (!columnasFecha.includes(col)) {
-                        newValue = (!isNaN(newValue) && newValue !== "") ? Number(newValue) : (newValue === "" ? "" : newValue);
-                    }
+                    if (!columnasFecha.includes(col)) { newValue = (!isNaN(newValue) && newValue !== "") ? Number(newValue) : (newValue === "" ? "" : newValue); }
                     
                     if (dataRef[rIndex][col] !== newValue) {
                         dataRef[rIndex][col] = newValue;
-
                         if (dataRef === anexoData && (col === "CANTIDAD" || col === "COSTO UNITARIO")) {
                             dataRef[rIndex]["COSTO TOTAL"] = (Number(dataRef[rIndex]["CANTIDAD"]) || 0) * (Number(dataRef[rIndex]["COSTO UNITARIO"]) || 0);
                             renderFunc(); 
                         }
-                        
                         if (col === "Proyecto") updateFilterOptions();
-
                         if (isCurrency && cell.tagName !== 'TD') e.target.value = (newValue !== "") ? formatMoneda(newValue) : '';
-
                         triggerAutoSave();
                     }
                 });
             });
         }
 
-
-        // --- IMPORTACIÓN INTELIGENTE ---
-        function handleFile(e, dataRefTarget) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    const data = new Uint8Array(event.target.result);
-                    const workbook = XLSX.read(data, {type: 'array', cellDates: true });
-                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                    
-                    let rawParsedData = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false, dateNF: "yyyy-mm-dd" });
-                    
-                    let parsedData = rawParsedData.map(row => {
-                        let cleanRow = {};
-                        Object.keys(row).forEach(k => {
-                            let newKey = k.trim().replace(/\s+/g, ' '); 
-                            if (newKey === "UNIDAD DE MED IDA") newKey = "UNIDAD DE MEDIDA";
-                            if (newKey.includes("VALIDADOR ¿REQUIERE CPC?_")) newKey = "VALIDADOR ¿REQUIERE CPC?_1"; 
-                            if (newKey.toUpperCase() === "PROYECTO") newKey = "Proyecto";
-                            if (newKey.toUpperCase() === "SUBSECRETARÍA" || newKey.toUpperCase() === "SUBSECRETARIA") newKey = "Subsecretaría";
-                            cleanRow[newKey] = row[k];
-                        });
-                        return cleanRow;
-                    });
-
-                    parsedData = parsedData.map(row => {
-                        Object.keys(row).forEach(k => {
-                            if(columnasMoneda.includes(k) || columnasNumericas.includes(k)) {
-                                let valStr = String(row[k]).replace(/[$\s,]/g, '');
-                                if(valStr !== "" && !isNaN(valStr)) row[k] = Number(valStr);
-                            }
-                            if(columnasFecha.includes(k) && row[k]) row[k] = toYYYYMMDD(row[k]);
-                        });
-                        return row;
-                    });
-                    
-                    if(parsedData.length > 0) {
-                        
-                        if (dataRefTarget === 'Plan') { 
-                            appData = parsedData; 
-                            updateFilterOptions(); 
-                            renderTable();
-                        } else { 
-                            const selectProyectoCarga = document.getElementById('selectProyectoCarga').value;
-                            const replaceData = document.getElementById('checkReplace').checked;
-                            const subsecRole = getSubsecretariaFromRole(currentRole);
-
-                            if (!selectProyectoCarga) {
-                                showMsg("Atención", "Selecciona primero a qué Proyecto corresponde este Anexo en la lista desplegable.");
-                                e.target.value = ''; 
-                                return;
-                            }
-
-                            parsedData = parsedData.map(row => {
-                                row["Proyecto"] = selectProyectoCarga;
-                                if (!row["Subsecretaría"] && subsecRole) {
-                                    row["Subsecretaría"] = subsecRole;
-                                }
-                                return row;
-                            });
-
-                            if (replaceData) {
-                                anexoData = anexoData.filter(r => String(r["Proyecto"]) !== String(selectProyectoCarga));
-                            }
-                            anexoData = [...parsedData, ...anexoData];
-
-                            updateFilterOptions(); 
-                            const selProyectoAnexo = document.getElementById('filterProyectoAnexo');
-                            if (selProyectoAnexo) selProyectoAnexo.value = selectProyectoCarga;
-
-                            onProyectoAnexoChange();
-                        }
-                        triggerAutoSave();
-                    } else {
-                        showMsg("Error", "El archivo Excel parece estar vacío.");
-                    }
-                } catch(error) {
-                    showMsg("Error Crítico", "No se pudo leer el archivo. Asegúrate de que sea un Excel válido.");
-                    console.error(error);
-                }
-                e.target.value = ''; 
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        document.getElementById('fileInput').addEventListener('change', (e) => handleFile(e, 'Plan'));
-        document.getElementById('fileInputAnexo').addEventListener('change', (e) => handleFile(e, 'Anexo'));
-
-
         // --- EXPORTACIÓN LOCAL A EXCEL ---
         function exportData(type) {
             let dataToExport = type === 'Plan' ? appData : anexoData;
             let headers = type === 'Plan' ? predefinedHeaders : anexoHeaders;
             let fileName = type === 'Plan' ? "Plan_de_Compras_2026.xlsx" : "Anexo_Presupuestal_2026.xlsx";
-
-            if(dataToExport.length === 0) {
-                showMsg("Atención", "No hay datos para exportar.");
-                return;
-            }
+            if(dataToExport.length === 0) { showMsg("Atención", "No hay datos para exportar."); return; }
             
             try {
                 const exportArray = dataToExport.map(row => {
                     let newRow = {};
                     headers.forEach(h => newRow[h] = row[h] !== undefined ? row[h] : ""); 
-                    
-                    columnasFecha.forEach(col => {
-                        if (newRow[col] && typeof newRow[col] === 'string') {
-                            const p = newRow[col].split('-');
-                            if (p.length === 3) newRow[col] = new Date(p[0], p[1] - 1, p[2]);
-                        }
-                    });
-                    
-                    if (newRow["VALIDADOR ¿REQUIERE CPC?_1"] !== undefined) {
-                        newRow["VALIDADOR ¿REQUIERE CPC? "] = newRow["VALIDADOR ¿REQUIERE CPC?_1"];
-                        delete newRow["VALIDADOR ¿REQUIERE CPC?_1"];
-                    }
+                    columnasFecha.forEach(col => { if (newRow[col] && typeof newRow[col] === 'string') { const p = newRow[col].split('-'); if (p.length === 3) newRow[col] = new Date(p[0], p[1] - 1, p[2]); } });
+                    if (newRow["VALIDADOR ¿REQUIERE CPC?_1"] !== undefined) { newRow["VALIDADOR ¿REQUIERE CPC? "] = newRow["VALIDADOR ¿REQUIERE CPC?_1"]; delete newRow["VALIDADOR ¿REQUIERE CPC?_1"]; }
                     return newRow;
                 });
 
                 let finalHeaders = headers.map(h => h === "VALIDADOR ¿REQUIERE CPC?_1" ? "VALIDADOR ¿REQUIERE CPC? " : h);
-
                 const worksheet = XLSX.utils.json_to_sheet(exportArray, { header: finalHeaders, cellDates: true });
                 const range = XLSX.utils.decode_range(worksheet['!ref']);
                 worksheet['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
@@ -1060,32 +698,21 @@
                 for (let R = range.s.r; R <= range.e.r; ++R) { 
                     for (let C = range.s.c; C <= range.e.c; ++C) {
                         const cell = worksheet[XLSX.utils.encode_cell({ r: R, c: C })];
-                        if (!cell) continue;
-                        if (!cell.s) cell.s = {};
+                        if (!cell) continue; if (!cell.s) cell.s = {};
                         cell.s.border = { top: { style: "thin", color: { rgb: "000000" } }, bottom: { style: "thin", color: { rgb: "000000" } }, left: { style: "thin", color: { rgb: "000000" } }, right: { style: "thin", color: { rgb: "000000" } } };
-
-                        if (R === 0) {
-                            if (!cell.s.font) cell.s.font = {};
-                            cell.s.font.bold = true;
-                            cell.s.fill = { patternType: "solid", fgColor: { rgb: "E2E8F0" } };
-                        } else if (columnasMoneda.includes(finalHeaders[C]) && cell.t === 'n') cell.z = '"$"#,##0';
+                        if (R === 0) { if (!cell.s.font) cell.s.font = {}; cell.s.font.bold = true; cell.s.fill = { patternType: "solid", fgColor: { rgb: "E2E8F0" } }; } 
+                        else if (columnasMoneda.includes(finalHeaders[C]) && cell.t === 'n') cell.z = '"$"#,##0';
                         else if (columnasFecha.includes(finalHeaders[C]) && cell.t === 'd') cell.z = 'dd/mm/yyyy';
                     }
                 }
-
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, fileName.replace(".xlsx", ""));
-                XLSX.writeFile(workbook, fileName);
-            } catch (error) {
-                showMsg("Error", "Ocurrió un error al generar el archivo Excel.");
-                console.error(error);
-            }
+                const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, worksheet, fileName.replace(".xlsx", "")); XLSX.writeFile(workbook, fileName);
+            } catch (error) { showMsg("Error", "Ocurrió un error al generar el archivo Excel."); }
         }
 
-        // Inicializamos las tablas
-        updateFilterOptions();
-        renderTable();
-        renderAnexoTable();
+        // =========================================================
+        // INICIO DE LA APLICACIÓN
+        // =========================================================
+        cargarDatosDesdeGoogle();
 
     </script>
 </body>
