@@ -212,7 +212,6 @@
         let anexoData = [];
 
         // Diccionario de Dependencias para saber qué "Mapa" de Excel corresponde a qué columna
-        // NOTA: Se eliminó "Posición Presupuestaría" de aquí para que sea tratada como una lista simple desde tu Excel.
         const dependenciasColumna = {
             // Plan de Compras
             "Codigo Actividad  MGA": "ActividadMGA",
@@ -227,7 +226,9 @@
 
         let mapasDependientes = {}; // Se llenará desde Google Sheets
 
-        // Listas predeterminadas simples (se combinarán con las de la hoja 'Listas')
+        // Listas predeterminadas (se combinarán con las de la hoja 'Listas')
+        // AL ESTAR AQUÍ, GARANTIZAMOS QUE LA TABLA SEPA QUE DEBEN SER DESPLEGABLES, 
+        // INCLUSO SI NO LLEGAN DESDE GOOGLE SHEETS AUN.
         let listasDesplegables = {
             "Subsecretaría": ["SUBSEC FORMAC CIUDAD", "SUBSEC ORGANIZACION SOCIAL", "SUBSEC PLANEACION LOCAL Y PP", "UNIDAD ADMINISTRATIVA"],
             "Mes de Compra": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
@@ -236,7 +237,8 @@
             "Tipo de Bien": ["Misional", "Generico", "Servicio", "Obra"],
             "Modalidad": ["Contratación Directa", "Licitación Pública", "Mínima Cuantía", "Concurso de Méritos", "Selección Abreviada", "Subasta Inversa"],
             "VALIDADOR ¿REQUIERE CPC?": ["SI", "NO"],
-            "Proyecto": ["240182", "240183", "240184", "240185", "240186", "240187", "240188", "240189", "240192", "1000000"]
+            "Proyecto": ["240182", "240183", "240184", "240185", "240186", "240187", "240188", "240189", "240192", "1000000"],
+            "Posición Presupuestaría": [] // Arranca vacío, se llenará con la hoja 'Listas'
         };
 
         function updateSaveStatus(status) {
@@ -388,7 +390,7 @@
             if (selProyecto) {
                 const currProy = selProyecto.value;
                 // La lista de proyectos ahora prioriza la hoja de Excel si existe, sino usa lo que hay en tabla
-                let opcionesProy = listasDesplegables["Proyecto"] ? listasDesplegables["Proyecto"] : Array.from(proyectos).sort();
+                let opcionesProy = (listasDesplegables["Proyecto"] && listasDesplegables["Proyecto"].length > 0) ? listasDesplegables["Proyecto"] : Array.from(proyectos).sort();
                 selProyecto.innerHTML = '<option value="">Todos los Proyectos</option>' + opcionesProy.map(p => `<option value="${p}">${p}</option>`).join('');
                 if(opcionesProy.includes(currProy)) selProyecto.value = currProy;
             }
@@ -405,7 +407,7 @@
             const selProyectoAnexo = document.getElementById('filterProyectoAnexo');
             if (selProyectoAnexo) {
                 const currProyAnexo = selProyectoAnexo.value;
-                let opcionesProyAnex = listasDesplegables["Proyecto"] ? listasDesplegables["Proyecto"] : Array.from(proyectosAnexo).sort();
+                let opcionesProyAnex = (listasDesplegables["Proyecto"] && listasDesplegables["Proyecto"].length > 0) ? listasDesplegables["Proyecto"] : Array.from(proyectosAnexo).sort();
                 selProyectoAnexo.innerHTML = opcionesProyAnex.map(p => `<option value="${p}">${p}</option>`).join('');
                 if(opcionesProyAnex.includes(currProyAnexo)) {
                     selProyectoAnexo.value = currProyAnexo;
@@ -447,6 +449,13 @@
             document.getElementById('errorMsg').style.display = 'none';
             document.getElementById('passwordModal').style.display = 'flex';
             document.getElementById('passwordInput').focus();
+        });
+
+        // Habilitar la tecla "Enter" para la contraseña
+        document.getElementById('passwordInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                verifyPassword();
+            }
         });
 
         function verifyPassword() {
