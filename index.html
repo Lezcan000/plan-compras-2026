@@ -8,19 +8,9 @@
     
     <style>
         :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --surface: #ffffff;
-            --background: #f1f5f9;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border: #cbd5e1;
-            --locked-bg: #f8fafc;
-            --editable-bg: #eff6ff;
-            --success: #16a34a;
-            --warning: #f59e0b;
-            --danger: #dc2626;
-            --info: #0ea5e9;
+            --primary: #2563eb; --primary-hover: #1d4ed8; --surface: #ffffff; --background: #f1f5f9;
+            --text-main: #0f172a; --text-muted: #64748b; --border: #cbd5e1; --locked-bg: #f8fafc;
+            --editable-bg: #eff6ff; --success: #16a34a; --warning: #f59e0b; --danger: #dc2626; --info: #0ea5e9;
         }
 
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background); color: var(--text-main); margin: 0; padding: 20px; }
@@ -47,7 +37,6 @@
         table { border-collapse: collapse; text-align: left; white-space: nowrap; width: 100%; }
         th { background-color: #e2e8f0; padding: 12px 16px; font-size: 12px; text-transform: uppercase; color: #334155; border-bottom: 2px solid var(--border); border-right: 1px solid var(--border); font-weight: 700; position: sticky; top: 0; z-index: 10; }
         
-        /* Primera columna sticky (Subsecretaría) */
         th:nth-child(1), td:nth-child(1) { position: sticky; left: 0; z-index: 20; }
         th:nth-child(1) { z-index: 30; }
         td { padding: 10px 16px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); font-size: 13px; }
@@ -103,7 +92,7 @@
             
             <div class="controls">
                 <button class="btn btn-outline" onclick="switchView('Anexo')">📄 Ir a Anexo Presupuestal</button>
-                <button class="btn btn-info" onclick="cargarDatosDesdeGoogle()">🔄 Recargar de Sheets</button>
+                <button class="btn btn-info" onclick="cargarDatosDesdeGoogle()">🔄 Recargar</button>
                 <button id="btnCrearNecesidad" class="btn btn-warning" onclick="crearNecesidad()" style="display: none;">➕ Crear necesidad</button>
                 <button class="btn btn-success" onclick="exportData('Plan')">💾 Descargar Excel</button>
 
@@ -155,7 +144,7 @@
             
             <div class="controls">
                 <button class="btn btn-outline" onclick="switchView('Plan')">⬅️ Volver al Plan</button>
-                <button class="btn btn-info" onclick="cargarDatosDesdeGoogle()">🔄 Recargar de Sheets</button>
+                <button class="btn btn-info" onclick="cargarDatosDesdeGoogle()">🔄 Recargar</button>
                 <button id="btnCrearFilaAnexo" class="btn btn-warning" onclick="crearFilaAnexo()" style="display: none;">➕ Añadir Fila</button>
                 <button class="btn btn-success" onclick="exportData('Anexo')">💾 Descargar Excel</button>
             </div>
@@ -213,14 +202,42 @@
 
     <script>
         // =========================================================
-        // URL DE TU GOOGLE APPS SCRIPT
+        // URL DE TU GOOGLE APPS SCRIPT (NUEVA IMPLEMENTACIÓN)
         // =========================================================
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyXsWykHXt4DQGvorZFRC2CzX_Up8_grHIPV4d2BQePJIewFvyPsGLigjoT7eeWn1U/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzV5lFUOWbHbAzMNDkrX9Fsx5gYMG41YX9xxIPWtXiyhEo5IKavK2euSbFtUY458MI/exec";
         
         let saveTimeoutId = null;
         let currentView = 'Plan'; 
         let appData = [];
         let anexoData = [];
+
+        // Diccionario de Dependencias para saber qué "Mapa" de Excel corresponde a qué columna
+        const dependenciasColumna = {
+            // Plan de Compras
+            "Posición Presupuestaría": "Pospre",
+            "Codigo Actividad  MGA": "ActividadMGA",
+            "Actividad detallada": "Detalle",
+            "Codigo producto MGA": "ProductoMGA",
+            // Anexo Presupuestal
+            "Clasificador por objeto de gasto (POSPRE)": "Pospre",
+            "ACTIVIDAD MGA": "ActividadMGA",
+            "ACTIVIDADES DETALLADAS": "Detalle",
+            "CÓDIGO PRODUCTO MGA": "ProductoMGA",
+            "PRODUCTO MGA": "ProductoMGA"
+        };
+
+        let mapasDependientes = {}; // Se llenará desde Google Sheets
+
+        // Listas predeterminadas simples (se combinarán con las de la hoja 'Listas')
+        let listasDesplegables = {
+            "Subsecretaría": ["SUBSEC FORMAC CIUDAD", "SUBSEC ORGANIZACION SOCIAL", "SUBSEC PLANEACION LOCAL Y PP", "UNIDAD ADMINISTRATIVA"],
+            "Mes de Compra": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+            "ESTADO": ["Planeación", "En Ejecución", "Suspendido", "Liquidado", "Cerrado"],
+            "Unidad de Tiempo": ["D", "M", "A"],
+            "Tipo de Bien": ["Misional", "Generico", "Servicio", "Obra"],
+            "Modalidad": ["Contratación Directa", "Licitación Pública", "Mínima Cuantía", "Concurso de Méritos", "Selección Abreviada", "Subasta Inversa"],
+            "VALIDADOR ¿REQUIERE CPC?": ["SI", "NO"]
+        };
 
         function updateSaveStatus(status) {
             const s1 = document.getElementById('saveStatus1');
@@ -239,7 +256,7 @@
         }
 
         // =========================================================
-        // CARGAR DATOS DESDE GOOGLE SHEETS AL INICIAR
+        // CARGAR DATOS Y MAPAS DESDE GOOGLE SHEETS
         // =========================================================
         async function cargarDatosDesdeGoogle() {
             updateSaveStatus('loading');
@@ -250,6 +267,13 @@
                 if (result.status === 'success') {
                     appData = result.planData || [];
                     anexoData = result.anexoData || [];
+                    mapasDependientes = result.mapasDependientes || {};
+                    
+                    if (result.listas) {
+                        for (let key in result.listas) {
+                            listasDesplegables[key] = result.listas[key];
+                        }
+                    }
                     
                     updateFilterOptions();
                     renderTable();
@@ -352,17 +376,6 @@
             return val;
         }
 
-        const listasDesplegables = {
-            "Subsecretaría": ["SUBSEC FORMAC CIUDAD", "SUBSEC ORGANIZACION SOCIAL", "SUBSEC PLANEACION LOCAL Y PP", "UNIDAD ADMINISTRATIVA"],
-            "Mes de Compra": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
-            "ESTADO": ["Planeación", "En Ejecución", "Suspendido", "Liquidado", "Cerrado"],
-            "Unidad de Tiempo": ["D", "M", "A"],
-            "Tipo de Bien": ["Misional", "Generico", "Servicio", "Obra"],
-            "Modalidad": ["Contratación Directa", "Licitación Pública", "Mínima Cuantía", "Concurso de Méritos", "Selección Abreviada", "Subasta Inversa"],
-            "VALIDADOR ¿REQUIERE CPC?": ["SI", "NO"],
-            "Proyecto": ["240182", "240183", "240184", "240185", "240186", "240187", "240188", "240189", "240192", "1000000"]
-        };
-
         function updateFilterOptions() {
             const proyectos = new Set();
             const estados = new Set();
@@ -374,8 +387,10 @@
             const selEstado = document.getElementById('filterEstado');
             if (selProyecto) {
                 const currProy = selProyecto.value;
-                selProyecto.innerHTML = '<option value="">Todos los Proyectos</option>' + Array.from(proyectos).sort().map(p => `<option value="${p}">${p}</option>`).join('');
-                if(Array.from(proyectos).includes(currProy)) selProyecto.value = currProy;
+                // La lista de proyectos ahora prioriza la hoja de Excel si existe, sino usa lo que hay en tabla
+                let opcionesProy = listasDesplegables["Proyecto"] ? listasDesplegables["Proyecto"] : Array.from(proyectos).sort();
+                selProyecto.innerHTML = '<option value="">Todos los Proyectos</option>' + opcionesProy.map(p => `<option value="${p}">${p}</option>`).join('');
+                if(opcionesProy.includes(currProy)) selProyecto.value = currProy;
             }
             if (selEstado) {
                 const currEst = selEstado.value;
@@ -390,12 +405,12 @@
             const selProyectoAnexo = document.getElementById('filterProyectoAnexo');
             if (selProyectoAnexo) {
                 const currProyAnexo = selProyectoAnexo.value;
-                const optionsStr = Array.from(proyectosAnexo).sort().map(p => `<option value="${p}">${p}</option>`).join('');
-                selProyectoAnexo.innerHTML = optionsStr || '<option value="">(No hay proyectos cargados)</option>';
-                if(Array.from(proyectosAnexo).includes(currProyAnexo)) {
+                let opcionesProyAnex = listasDesplegables["Proyecto"] ? listasDesplegables["Proyecto"] : Array.from(proyectosAnexo).sort();
+                selProyectoAnexo.innerHTML = opcionesProyAnex.map(p => `<option value="${p}">${p}</option>`).join('');
+                if(opcionesProyAnex.includes(currProyAnexo)) {
                     selProyectoAnexo.value = currProyAnexo;
-                } else if (proyectosAnexo.size > 0) {
-                    selProyectoAnexo.value = Array.from(proyectosAnexo).sort()[0];
+                } else if (opcionesProyAnex.length > 0) {
+                    selProyectoAnexo.value = opcionesProyAnex[0];
                 }
             }
         }
@@ -507,7 +522,6 @@
                 let sortClass = sortCol === col ? 'active' : '';
                 headerHTML += `<th ${getColStyle(col)}><div class="sort-container" onclick="toggleSort('${col}')">${col} <span class="sort-icon ${sortClass}">↕</span></div></th>`;
             });
-            // Columna de eliminar al final
             headerHTML += '<th style="text-align:center; width: 40px;">🗑️</th></tr>';
             document.getElementById('tableHead').innerHTML = headerHTML;
             tbody.innerHTML = '';
@@ -539,7 +553,17 @@
                     const isProtected = colName.toLowerCase().includes('subsecretar') && currentRole !== 'Equipo de Contratación'; 
                     
                     if (canEdit && !isProtected) {
-                        if (listasDesplegables[colName]) {
+                        let depKey = dependenciasColumna[colName];
+                        if (depKey) {
+                            // LÓGICA DE LISTA DESPLEGABLE DEPENDIENTE DEL PROYECTO
+                            let proyectoActual = row["Proyecto"] || "";
+                            let opcionesPermitidas = (mapasDependientes[depKey] && mapasDependientes[depKey][proyectoActual]) ? mapasDependientes[depKey][proyectoActual] : [];
+                            
+                            let options = `<option value="">- Seleccionar -</option>` + opcionesPermitidas.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
+                            rowHTML += `<td ${getColStyle(colName)}><select class="cell-input plan-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
+
+                        } else if (listasDesplegables[colName]) {
+                            // Lista desplegable normal
                             let options = `<option value="">- Seleccionar -</option>` + listasDesplegables[colName].map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
                             rowHTML += `<td ${getColStyle(colName)}><select class="cell-input plan-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
                         } else if (columnasMoneda.includes(colName)) {
@@ -559,9 +583,7 @@
                     }
                 });
 
-                // Botón de eliminar al final de la fila
                 rowHTML += '<td style="text-align:center;">' + (canEdit ? `<button class="btn-delete" title="Eliminar fila" onclick="eliminarFila('Plan', ${index})">❌</button>` : '') + '</td>';
-
                 tr.innerHTML = rowHTML; tbody.appendChild(tr);
             });
 
@@ -582,14 +604,13 @@
                 let sortClass = sortCol === col ? 'active' : '';
                 headerHTML += `<th ${getColStyle(col)}><div class="sort-container" onclick="toggleSort('${col}', true)">${displayCol} <span class="sort-icon ${sortClass}">↕</span></div></th>`;
             });
-            // Columna de eliminar al final
             headerHTML += '<th style="text-align:center; width: 40px;">🗑️</th></tr>';
             document.getElementById('anexoTableHead').innerHTML = headerHTML;
             tbody.innerHTML = '';
 
             if(anexoData.length === 0 || !valProyAnexo) {
                 tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; padding: 40px; color: var(--text-muted);">No hay datos para este proyecto o el anexo está vacío.</td></tr>`;
-                document.getElementById('summaryBarAnexo').innerText = `Total Visible Anexo Presupuestal: $ 0`;
+                document.getElementById('summaryBarAnexo').innerText = `Total: $ 0`;
                 return;
             }
 
@@ -610,29 +631,38 @@
                     if (canEdit && !isProtected) {
                         if (colName === "COSTO TOTAL") {
                             rowHTML += `<td ${getColStyle(colName)}><strong>${(cellValue !== "" && !isNaN(cellValue)) ? formatMoneda(cellValue) : "$ 0"}</strong></td>`;
-                        } else if (listasDesplegables[colName.replace('_1', '')]) {
-                            let cleanCol = colName.replace('_1', '');
-                            let options = `<option value="">- Seleccionar -</option>` + listasDesplegables[cleanCol].map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
-                            rowHTML += `<td ${getColStyle(colName)}><select class="cell-input anexo-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
-                        } else if (columnasMoneda.includes(colName)) {
-                            rowHTML += `<td ${getColStyle(colName)}><input type="text" class="cell-input currency-input anexo-input" data-index="${index}" data-col="${colName}" value="${(cellValue !== "" && !isNaN(cellValue)) ? formatMoneda(cellValue) : ""}"></td>`;
-                        } else if (columnasNumericas.includes(colName)) {
-                            rowHTML += `<td ${getColStyle(colName)}><input type="number" class="cell-input anexo-input" data-index="${index}" data-col="${colName}" value="${cellValue}"></td>`;
                         } else {
-                            rowHTML += `<td ${getColStyle(colName)} contenteditable="true" class="anexo-input" data-index="${index}" data-col="${colName}">${cellValue}</td>`;
+                            let depKey = dependenciasColumna[colName];
+                            if (depKey) {
+                                // LÓGICA DE LISTA DEPENDIENTE
+                                let proyectoActual = row["Proyecto"] || "";
+                                let opcionesPermitidas = (mapasDependientes[depKey] && mapasDependientes[depKey][proyectoActual]) ? mapasDependientes[depKey][proyectoActual] : [];
+                                
+                                let options = `<option value="">- Seleccionar -</option>` + opcionesPermitidas.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
+                                rowHTML += `<td ${getColStyle(colName)}><select class="cell-input anexo-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
+                            }
+                            else if (listasDesplegables[colName.replace('_1', '')]) {
+                                let cleanCol = colName.replace('_1', '');
+                                let options = `<option value="">- Seleccionar -</option>` + listasDesplegables[cleanCol].map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
+                                rowHTML += `<td ${getColStyle(colName)}><select class="cell-input anexo-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
+                            } else if (columnasMoneda.includes(colName)) {
+                                rowHTML += `<td ${getColStyle(colName)}><input type="text" class="cell-input currency-input anexo-input" data-index="${index}" data-col="${colName}" value="${(cellValue !== "" && !isNaN(cellValue)) ? formatMoneda(cellValue) : ""}"></td>`;
+                            } else if (columnasNumericas.includes(colName)) {
+                                rowHTML += `<td ${getColStyle(colName)}><input type="number" class="cell-input anexo-input" data-index="${index}" data-col="${colName}" value="${cellValue}"></td>`;
+                            } else {
+                                rowHTML += `<td ${getColStyle(colName)} contenteditable="true" class="anexo-input" data-index="${index}" data-col="${colName}">${cellValue}</td>`;
+                            }
                         }
                     } else {
                         rowHTML += `<td ${getColStyle(colName)}>${columnasMoneda.includes(colName) && cellValue !== "" ? formatMoneda(cellValue) : cellValue}</td>`;
                     }
                 });
 
-                // Botón de eliminar al final de la fila
                 rowHTML += '<td style="text-align:center;">' + (canEdit ? `<button class="btn-delete" title="Eliminar fila" onclick="eliminarFila('Anexo', ${index})">❌</button>` : '') + '</td>';
-
                 tr.innerHTML = rowHTML; tbody.appendChild(tr);
             });
 
-            document.getElementById('summaryBarAnexo').innerText = `Total Visible Anexo Presupuestal: ${formatMoneda(totalValor)}`;
+            document.getElementById('summaryBarAnexo').innerText = `Total: ${formatMoneda(totalValor)}`;
             attachListeners('anexo-input', anexoData, renderAnexoTable);
         }
 
@@ -655,11 +685,30 @@
                     
                     if (dataRef[rIndex][col] !== newValue) {
                         dataRef[rIndex][col] = newValue;
+
+                        // Si cambia el Proyecto, limpiar las opciones dependientes viejas de esa fila
+                        if (col === "Proyecto") {
+                            if (dataRef === appData) {
+                                dataRef[rIndex]["Posición Presupuestaría"] = "";
+                                dataRef[rIndex]["Codigo Actividad  MGA"] = "";
+                                dataRef[rIndex]["Actividad detallada"] = "";
+                                dataRef[rIndex]["Codigo producto MGA"] = "";
+                            } else {
+                                dataRef[rIndex]["Clasificador por objeto de gasto (POSPRE)"] = "";
+                                dataRef[rIndex]["ACTIVIDAD MGA"] = "";
+                                dataRef[rIndex]["ACTIVIDADES DETALLADAS"] = "";
+                                dataRef[rIndex]["CÓDIGO PRODUCTO MGA"] = "";
+                                dataRef[rIndex]["PRODUCTO MGA"] = "";
+                            }
+                            updateFilterOptions();
+                            renderFunc(); // Fuerza recarga para actualizar las listas desplegables
+                        }
+
                         if (dataRef === anexoData && (col === "CANTIDAD" || col === "COSTO UNITARIO")) {
                             dataRef[rIndex]["COSTO TOTAL"] = (Number(dataRef[rIndex]["CANTIDAD"]) || 0) * (Number(dataRef[rIndex]["COSTO UNITARIO"]) || 0);
                             renderFunc(); 
                         }
-                        if (col === "Proyecto") updateFilterOptions();
+                        
                         if (isCurrency && cell.tagName !== 'TD') e.target.value = (newValue !== "") ? formatMoneda(newValue) : '';
                         triggerAutoSave();
                     }
