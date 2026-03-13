@@ -202,9 +202,9 @@
 
     <script>
         // =========================================================
-        // URL DE TU GOOGLE APPS SCRIPT (NUEVA IMPLEMENTACIÓN)
+        // URL DE TU GOOGLE APPS SCRIPT
         // =========================================================
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzV5lFUOWbHbAzMNDkrX9Fsx5gYMG41YX9xxIPWtXiyhEo5IKavK2euSbFtUY458MI/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzqrHDkG1aBNCgdBn2JDQzwSW-WeJxamYTj-KGw_DVAkA9_363uazWXFUUX2IV1xBQ/exec";
         
         let saveTimeoutId = null;
         let currentView = 'Plan'; 
@@ -263,6 +263,8 @@
             try {
                 const response = await fetch(WEB_APP_URL);
                 const result = await response.json();
+
+                console.log("Datos recibidos desde Google Sheets:", result); // Console log para depurar si falla algo
 
                 if (result.status === 'success') {
                     // --- SISTEMA DE DIAGNÓSTICO: DETECTA SI EL SERVIDOR ES VIEJO ---
