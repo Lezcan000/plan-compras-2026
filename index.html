@@ -43,7 +43,7 @@
 
         .row-locked { background-color: var(--locked-bg); color: var(--text-muted); }
         .row-locked td:nth-child(1) { background-color: #e2e8f0; font-weight: 600; }
-        .row-editable { background-color: var(--editable-bg); }
+        .row-editable { background-color: var(--editable-bg); transition: background-color 0.3s ease; }
         .row-editable td:nth-child(1) { background-color: #bfdbfe; font-weight: 600; }
         .row-editable td[contenteditable="true"]:hover { background-color: #dbeafe; cursor: text; outline: 1px dashed var(--primary); }
         .row-editable td[contenteditable="true"]:focus { background-color: #fff; outline: 2px solid var(--primary); }
@@ -207,9 +207,18 @@
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzqrHDkG1aBNCgdBn2JDQzwSW-WeJxamYTj-KGw_DVAkA9_363uazWXFUUX2IV1xBQ/exec";
         
         let saveTimeoutId = null;
+        let hasUnsavedChanges = false; // FLAG PARA ADVERTENCIA DE CIERRE DE PESTAÑA
         let currentView = 'Plan'; 
         let appData = [];
         let anexoData = [];
+
+        // ADVERTENCIA AL CERRAR PESTAÑA CON DATOS SIN GUARDAR
+        window.addEventListener('beforeunload', function (e) {
+            if (hasUnsavedChanges || saveTimeoutId) {
+                e.preventDefault();
+                e.returnValue = 'Tienes cambios sin guardar, ¿seguro que quieres salir?';
+            }
+        });
 
         // Diccionario de Dependencias para saber qué "Mapa" de Excel corresponde a qué columna
         const dependenciasColumna = {
@@ -264,8 +273,6 @@
                 const response = await fetch(WEB_APP_URL);
                 const result = await response.json();
 
-                console.log("Datos recibidos desde Google Sheets:", result); // Console log para depurar si falla algo
-
                 if (result.status === 'success') {
                     // --- SISTEMA DE DIAGNÓSTICO: DETECTA SI EL SERVIDOR ES VIEJO ---
                     if (result.listas === undefined || result.mapasDependientes === undefined) {
@@ -313,12 +320,25 @@
             }
         }
 
+        // FUNCIÓN PARA REVISAR SI UNA FILA ESTÁ 100% VACÍA ANTES DE ENVIAR
+        function isRowEmpty(row) {
+            return !Object.keys(row).some(key => 
+                key !== 'Subsecretaría' && 
+                key !== 'Proyecto' && 
+                row[key] !== "" && 
+                row[key] !== null && 
+                row[key] !== 0
+            );
+        }
+
         // =========================================================
         // GUARDAR DATOS HACIA GOOGLE SHEETS (DEBOUNCE)
         // =========================================================
         function triggerAutoSave() {
             if (currentRole === 'Invitado') return; 
             updateSaveStatus('saving');
+            hasUnsavedChanges = true; // Activar el bloqueo de cerrar pestaña
+            
             if (saveTimeoutId) clearTimeout(saveTimeoutId);
             
             saveTimeoutId = setTimeout(() => {
@@ -328,16 +348,22 @@
 
         async function ejecutarGuardadoSilencioso() {
             try {
+                // FILTRAMOS LAS FILAS VACÍAS PARA NO ENVIAR BASURA A GOOGLE SHEETS
+                const cleanPlanData = appData.filter(row => !isRowEmpty(row));
+                const cleanAnexoData = anexoData.filter(row => !isRowEmpty(row));
+
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'validarYGuardar', planData: appData, anexoData: anexoData })
+                    body: JSON.stringify({ action: 'validarYGuardar', planData: cleanPlanData, anexoData: cleanAnexoData })
                 });
                 const result = await response.json();
 
                 if (result.status === 'success') {
                     updateSaveStatus('saved');
+                    hasUnsavedChanges = false; // Desactivar bloqueo de pestaña
                 } else if (result.status === 'warning') {
                     updateSaveStatus('warning');
+                    hasUnsavedChanges = false; // Se guardó, aunque con alertas
                     if (currentView === 'Anexo') {
                         document.getElementById('validationErrors').innerText = result.errores.join("\n");
                         document.getElementById('validationModal').style.display = 'flex';
@@ -459,7 +485,13 @@
         }
 
         // --- ROLES Y PERMISOS ---
-        const rolePasswords = { "Equipo de Contratación": "admin123", "Subsecretaría de Formación y Participación Ciudadana": "formacion2025", "Subsecretaría de Organización Social": "social2025", "Subsecretaria de Planeación Local y PP": "planeacion2025", "Unidad Administrativa": "unidad2025" };
+        const rolePasswords = { 
+            "Equipo de Contratación": "*EmpresaParques*", 
+            "Subsecretaría de Formación y Participación Ciudadana": "*EmpresaParques*", 
+            "Subsecretaría de Organización Social": "*EmpresaParques*", 
+            "Subsecretaria de Planeación Local y PP": "*EmpresaParques*", 
+            "Unidad Administrativa": "*EmpresaParques*" 
+        };
         let currentRole = "Invitado"; let pendingRole = ""; let roleSelect = document.getElementById('roleSelector');
         
         roleSelect.addEventListener('change', (e) => {
@@ -514,7 +546,18 @@
             const nuevaFila = {}; predefinedHeaders.forEach(col => nuevaFila[col] = "");
             const subsec = getSubsecretariaFromRole(currentRole); if (subsec) nuevaFila["Subsecretaría"] = subsec;
             appData.push(nuevaFila); updateFilterOptions(); renderTable();
-            setTimeout(() => { const wrapper = document.querySelector('#viewPlanCompras .table-wrapper'); wrapper.scrollTop = wrapper.scrollHeight; }, 100);
+            
+            // ANIMACIÓN Y AUTO-SCROLL AL CREAR FILA
+            setTimeout(() => { 
+                const wrapper = document.querySelector('#viewPlanCompras .table-wrapper'); 
+                wrapper.scrollTop = wrapper.scrollHeight; 
+                const rows = document.querySelectorAll('#tableBody tr');
+                if (rows.length > 0) {
+                    const lastRow = rows[rows.length - 1];
+                    lastRow.style.backgroundColor = '#fef08a'; // Color amarillo tenue
+                    setTimeout(() => lastRow.style.backgroundColor = '', 2000); // Quita el color tras 2 seg
+                }
+            }, 100);
             triggerAutoSave(); 
         }
 
@@ -524,7 +567,18 @@
             const subsec = getSubsecretariaFromRole(currentRole); if (subsec) nuevaFila["Subsecretaría"] = subsec;
             const valProyAnexo = document.getElementById('filterProyectoAnexo')?.value || ""; if (valProyAnexo) nuevaFila["Proyecto"] = valProyAnexo;
             anexoData.push(nuevaFila); updateFilterOptions(); renderAnexoTable();
-            setTimeout(() => { const wrapper = document.querySelector('#viewAnexoPresupuestal .table-wrapper'); wrapper.scrollTop = wrapper.scrollHeight; }, 100);
+            
+            // ANIMACIÓN Y AUTO-SCROLL AL CREAR FILA
+            setTimeout(() => { 
+                const wrapper = document.querySelector('#viewAnexoPresupuestal .table-wrapper'); 
+                wrapper.scrollTop = wrapper.scrollHeight; 
+                const rows = document.querySelectorAll('#anexoTableBody tr');
+                if (rows.length > 0) {
+                    const lastRow = rows[rows.length - 1];
+                    lastRow.style.backgroundColor = '#fef08a';
+                    setTimeout(() => lastRow.style.backgroundColor = '', 2000);
+                }
+            }, 100);
             triggerAutoSave(); 
         }
 
@@ -540,6 +594,10 @@
             if (colName.includes('Actividad') || colName.includes('ACTIVIDAD')) return 'style="max-width: 250px; min-width: 200px; white-space: normal; line-height: 1.4;"';
             if (colName.includes('Observación') || colName.includes('Objeto') || colName.includes('PRODUCTO')) return 'style="max-width: 250px; min-width: 150px; white-space: normal; line-height: 1.4;"';
             if (colName === 'Trasladar') return 'style="max-width: 200px; min-width: 150px; white-space: normal; line-height: 1.4;"'; 
+            if (colName === 'Causal' || colName === 'Duración del Proyecto') return 'style="max-width: 90px; white-space: normal; line-height: 1.4;"';
+            if (colName === 'Indicador Plan de Dllo (Solo producto)') return 'style="max-width: 120px; white-space: normal; line-height: 1.4;"';
+            if (colName === 'ESTADO') return 'style="min-width: 140px;"';
+            if (colName.includes('Clasificador CPC (Aplica solo para POSPRE')) return 'style="max-width: 160px; min-width: 120px; white-space: normal; line-height: 1.4;"';
             return '';
         };
 
@@ -727,7 +785,11 @@
                     const col = e.target.getAttribute('data-col');
                     let newValue = e.target.value !== undefined ? e.target.value : e.target.innerText.trim();
                     
-                    if (isCurrency) newValue = newValue.replace(/\D/g, ''); 
+                    // MANEJO DE MONEDA EN CERO AL BORRAR
+                    if (isCurrency) {
+                        newValue = newValue.replace(/\D/g, '');
+                        if (newValue === "") newValue = 0; // Fuerza el 0 matemático
+                    } 
                     if (!columnasFecha.includes(col)) { newValue = (!isNaN(newValue) && newValue !== "") ? Number(newValue) : (newValue === "" ? "" : newValue); }
                     
                     if (dataRef[rIndex][col] !== newValue) {
@@ -771,7 +833,12 @@
             try {
                 const exportArray = dataToExport.map(row => {
                     let newRow = {};
-                    headers.forEach(h => newRow[h] = row[h] !== undefined ? row[h] : ""); 
+                    headers.forEach(h => {
+                        let val = row[h] !== undefined ? row[h] : "";
+                        // GARANTÍA DE EXPORTACIÓN EN 0
+                        if (columnasMoneda.includes(h) && val === "") val = 0;
+                        newRow[h] = val;
+                    }); 
                     columnasFecha.forEach(col => { if (newRow[col] && typeof newRow[col] === 'string') { const p = newRow[col].split('-'); if (p.length === 3) newRow[col] = new Date(p[0], p[1] - 1, p[2]); } });
                     if (newRow["VALIDADOR ¿REQUIERE CPC?_1"] !== undefined) { newRow["VALIDADOR ¿REQUIERE CPC? "] = newRow["VALIDADOR ¿REQUIERE CPC?_1"]; delete newRow["VALIDADOR ¿REQUIERE CPC?_1"]; }
                     return newRow;
