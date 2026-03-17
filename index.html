@@ -204,13 +204,17 @@
         // =========================================================
         // URL DE TU GOOGLE APPS SCRIPT
         // =========================================================
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzqrHDkG1aBNCgdBn2JDQzwSW-WeJxamYTj-KGw_DVAkA9_363uazWXFUUX2IV1xBQ/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzgyHwr-Zwrm8iinhx-NZk9Jk88GfAxOZk4gSRqgO34R7Yk2kHrY-K_hExIT5WMRZ0/exec";
         
         let saveTimeoutId = null;
         let hasUnsavedChanges = false; // FLAG PARA ADVERTENCIA DE CIERRE DE PESTAÑA
         let currentView = 'Plan'; 
         let appData = [];
         let anexoData = [];
+
+        // --- SISTEMA DE ACTUALIZACIÓN POR DELTAS (CELDAS) ---
+        let planDeltas = { adds: [], updates: [], deletes: [] };
+        let anexoDeltas = { adds: [], updates: [], deletes: [] };
 
         // ADVERTENCIA AL CERRAR PESTAÑA CON DATOS SIN GUARDAR
         window.addEventListener('beforeunload', function (e) {
@@ -219,6 +223,15 @@
                 e.returnValue = 'Tienes cambios sin guardar, ¿seguro que quieres salir?';
             }
         });
+
+        // Generador de UUID para filas nuevas en la web
+        function generateUUID() {
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+            return 'temp-xxxx-4xxx-yxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
 
         // Diccionario de Dependencias para saber qué "Mapa" de Excel corresponde a qué columna
         const dependenciasColumna = {
@@ -274,35 +287,32 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    // --- SISTEMA DE DIAGNÓSTICO: DETECTA SI EL SERVIDOR ES VIEJO ---
+                    // Resetear deltas y estado al cargar datos frescos del servidor
+                    planDeltas = { adds: [], updates: [], deletes: [] };
+                    anexoDeltas = { adds: [], updates: [], deletes: [] };
+                    hasUnsavedChanges = false;
+
                     if (result.listas === undefined || result.mapasDependientes === undefined) {
-                        showMsg("🚨 Servidor Desactualizado", "La web se conectó a tu Google Sheets, pero el servidor (Apps Script) no le envió las listas.\n\nEsto significa que Google sigue ejecutando una versión vieja de tu código. Debes ir a Apps Script, pegar el código más reciente y hacer clic en 'Implementar > Nueva Implementación'.");
+                        showMsg("🚨 Servidor Desactualizado", "La web se conectó a tu Google Sheets, pero el servidor (Apps Script) no está usando la nueva versión del código con Deltas.\n\nPor favor, actualiza tu código en Apps Script y crea una Nueva Implementación.");
                     }
 
                     appData = result.planData || [];
                     anexoData = result.anexoData || [];
                     mapasDependientes = result.mapasDependientes || {};
                     
-                    // Lógica robusta para emparejar los nombres de las columnas de Excel sin importar tildes o espacios extras
                     if (result.listas) {
                         for (let key in result.listas) {
                             let normKey = key.trim();
-                            // Quitamos acentos para comparar más fácil
                             let keySinAcentos = normKey.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
                             
-                            // Buscamos si existe alguna columna en nuestra lista de HTML que coincida
                             let matchedHeader = Object.keys(listasDesplegables).find(k => 
                                 k.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === keySinAcentos
                             );
 
-                            // Filtramos campos vacíos de Excel
                             let opcionesLimpias = result.listas[key].filter(Boolean);
 
-                            if (matchedHeader) {
-                                listasDesplegables[matchedHeader] = opcionesLimpias;
-                            } else {
-                                listasDesplegables[normKey] = opcionesLimpias;
-                            }
+                            if (matchedHeader) listasDesplegables[matchedHeader] = opcionesLimpias;
+                            else listasDesplegables[normKey] = opcionesLimpias;
                         }
                     }
                     
@@ -320,11 +330,12 @@
             }
         }
 
-        // FUNCIÓN PARA REVISAR SI UNA FILA ESTÁ 100% VACÍA ANTES DE ENVIAR
+        // FUNCIÓN PARA REVISAR SI UNA FILA ESTÁ 100% VACÍA
         function isRowEmpty(row) {
             return !Object.keys(row).some(key => 
                 key !== 'Subsecretaría' && 
                 key !== 'Proyecto' && 
+                key !== 'ID' && // Excluir ID de la comprobación
                 row[key] !== "" && 
                 row[key] !== null && 
                 row[key] !== 0
@@ -332,12 +343,12 @@
         }
 
         // =========================================================
-        // GUARDAR DATOS HACIA GOOGLE SHEETS (DEBOUNCE)
+        // GUARDAR DATOS HACIA GOOGLE SHEETS (DEBOUNCE POR DELTAS)
         // =========================================================
         function triggerAutoSave() {
             if (currentRole === 'Invitado') return; 
             updateSaveStatus('saving');
-            hasUnsavedChanges = true; // Activar el bloqueo de cerrar pestaña
+            hasUnsavedChanges = true; 
             
             if (saveTimeoutId) clearTimeout(saveTimeoutId);
             
@@ -348,28 +359,49 @@
 
         async function ejecutarGuardadoSilencioso() {
             try {
-                // FILTRAMOS LAS FILAS VACÍAS PARA NO ENVIAR BASURA A GOOGLE SHEETS
-                const cleanPlanData = appData.filter(row => !isRowEmpty(row));
-                const cleanAnexoData = anexoData.filter(row => !isRowEmpty(row));
+                // Filtramos las filas vacías de los "adds" para no ensuciar Google Sheets
+                const planAdds = planDeltas.adds.filter(row => !isRowEmpty(row));
+                const anexoAdds = anexoDeltas.adds.filter(row => !isRowEmpty(row));
+
+                const payload = {
+                    action: 'validarYGuardarDeltas',
+                    planDeltas: { adds: planAdds, updates: planDeltas.updates, deletes: planDeltas.deletes },
+                    anexoDeltas: { adds: anexoAdds, updates: anexoDeltas.updates, deletes: anexoDeltas.deletes }
+                };
+
+                // Comprobar si hay algo real que enviar
+                const hasPlanChanges = payload.planDeltas.adds.length > 0 || payload.planDeltas.updates.length > 0 || payload.planDeltas.deletes.length > 0;
+                const hasAnexoChanges = payload.anexoDeltas.adds.length > 0 || payload.anexoDeltas.updates.length > 0 || payload.anexoDeltas.deletes.length > 0;
+
+                if (!hasPlanChanges && !hasAnexoChanges) {
+                    updateSaveStatus('saved');
+                    hasUnsavedChanges = false;
+                    return;
+                }
+
+                // Vaciamos las colas para que los usuarios puedan seguir trabajando sin perder datos mientras viajan los actuales
+                planDeltas = { adds: [], updates: [], deletes: [] };
+                anexoDeltas = { adds: [], updates: [], deletes: [] };
 
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'validarYGuardar', planData: cleanPlanData, anexoData: cleanAnexoData })
+                    body: JSON.stringify(payload)
                 });
                 const result = await response.json();
 
                 if (result.status === 'success') {
                     updateSaveStatus('saved');
-                    hasUnsavedChanges = false; // Desactivar bloqueo de pestaña
+                    hasUnsavedChanges = false; 
                 } else if (result.status === 'warning') {
                     updateSaveStatus('warning');
-                    hasUnsavedChanges = false; // Se guardó, aunque con alertas
+                    hasUnsavedChanges = false;
                     if (currentView === 'Anexo') {
                         document.getElementById('validationErrors').innerText = result.errores.join("\n");
                         document.getElementById('validationModal').style.display = 'flex';
                     }
                 } else {
                     updateSaveStatus('error');
+                    console.error("Error backend:", result.message);
                 }
             } catch (error) {
                 updateSaveStatus('error');
@@ -484,13 +516,13 @@
             isAnexo ? renderAnexoTable() : renderTable();
         }
 
-        // --- ROLES Y PERMISOS ---
+        // --- ROLES Y PERMISOS (Nuevas Contraseñas Asignadas) ---
         const rolePasswords = { 
-            "Equipo de Contratación": "*EmpresaParques*", 
-            "Subsecretaría de Formación y Participación Ciudadana": "*EmpresaParques*", 
-            "Subsecretaría de Organización Social": "*EmpresaParques*", 
-            "Subsecretaria de Planeación Local y PP": "*EmpresaParques*", 
-            "Unidad Administrativa": "*EmpresaParques*" 
+            "Equipo de Contratación": "EquipoContrat", 
+            "Subsecretaría de Formación y Participación Ciudadana": "Formacion", 
+            "Subsecretaría de Organización Social": "OrgSocial", 
+            "Subsecretaria de Planeación Local y PP": "LocalPP26", 
+            "Unidad Administrativa": "UnidadAdmin" 
         };
         let currentRole = "Invitado"; let pendingRole = ""; let roleSelect = document.getElementById('roleSelector');
         
@@ -543,9 +575,15 @@
 
         function crearNecesidad() {
             if (currentRole === 'Invitado') return;
-            const nuevaFila = {}; predefinedHeaders.forEach(col => nuevaFila[col] = "");
+            const nuevaFila = {}; 
+            nuevaFila["ID"] = generateUUID(); // ASIGNACIÓN DE ID ÚNICO
+            predefinedHeaders.forEach(col => nuevaFila[col] = "");
+            
             const subsec = getSubsecretariaFromRole(currentRole); if (subsec) nuevaFila["Subsecretaría"] = subsec;
-            appData.push(nuevaFila); updateFilterOptions(); renderTable();
+            appData.push(nuevaFila); 
+            planDeltas.adds.push(nuevaFila); // Seguimiento de Delta (Agregar)
+            
+            updateFilterOptions(); renderTable();
             
             // ANIMACIÓN Y AUTO-SCROLL AL CREAR FILA
             setTimeout(() => { 
@@ -563,10 +601,16 @@
 
         function crearFilaAnexo() {
             if (currentRole === 'Invitado') return;
-            const nuevaFila = {}; anexoHeaders.forEach(col => nuevaFila[col] = "");
+            const nuevaFila = {}; 
+            nuevaFila["ID"] = generateUUID(); // ASIGNACIÓN DE ID ÚNICO
+            anexoHeaders.forEach(col => nuevaFila[col] = "");
+            
             const subsec = getSubsecretariaFromRole(currentRole); if (subsec) nuevaFila["Subsecretaría"] = subsec;
             const valProyAnexo = document.getElementById('filterProyectoAnexo')?.value || ""; if (valProyAnexo) nuevaFila["Proyecto"] = valProyAnexo;
-            anexoData.push(nuevaFila); updateFilterOptions(); renderAnexoTable();
+            anexoData.push(nuevaFila); 
+            anexoDeltas.adds.push(nuevaFila); // Seguimiento de Delta (Agregar)
+            
+            updateFilterOptions(); renderAnexoTable();
             
             // ANIMACIÓN Y AUTO-SCROLL AL CREAR FILA
             setTimeout(() => { 
@@ -584,8 +628,24 @@
 
         function eliminarFila(type, index) {
             if (confirm("¿Estás seguro de eliminar esta fila?")) {
-                if (type === 'Plan') { appData.splice(index, 1); updateFilterOptions(); renderTable(); } 
-                else { anexoData.splice(index, 1); updateFilterOptions(); renderAnexoTable(); }
+                let dataArray = type === 'Plan' ? appData : anexoData;
+                let targetDeltas = type === 'Plan' ? planDeltas : anexoDeltas;
+                const rowId = dataArray[index]["ID"];
+
+                // Si la fila estaba recién añadida y aún no iba a Sheets, la sacamos de "adds"
+                let addedIndex = targetDeltas.adds.findIndex(r => r["ID"] === rowId);
+                if (addedIndex !== -1) {
+                    targetDeltas.adds.splice(addedIndex, 1);
+                } else {
+                    // Si ya existía en Google Sheets, enviamos la orden de eliminación
+                    targetDeltas.deletes.push(rowId);
+                    // Y quitamos cualquier actualización pendiente de esa fila
+                    targetDeltas.updates = targetDeltas.updates.filter(u => u.id !== rowId);
+                }
+
+                dataArray.splice(index, 1); 
+                updateFilterOptions(); 
+                type === 'Plan' ? renderTable() : renderAnexoTable();
                 triggerAutoSave();
             }
         }
@@ -682,7 +742,8 @@
                 tr.innerHTML = rowHTML; tbody.appendChild(tr);
             });
 
-            document.getElementById('summaryBar').innerText = `Mostrando ${visibleCount} de ${appData.length} registros | Suma visible: ${formatMoneda(totalValor)}`;
+            // CAMBIO DE TEXTO: Suma visible a Total
+            document.getElementById('summaryBar').innerText = `Mostrando ${visibleCount} de ${appData.length} registros | Total: ${formatMoneda(totalValor)}`;
             attachListeners('plan-input', appData, renderTable);
         }
 
@@ -795,24 +856,50 @@
                     if (dataRef[rIndex][col] !== newValue) {
                         dataRef[rIndex][col] = newValue;
 
-                        // Si cambia el Proyecto, limpiar las opciones dependientes viejas de esa fila
-                        if (col === "Proyecto") {
-                            if (dataRef === appData) {
-                                dataRef[rIndex]["Codigo Actividad  MGA"] = "";
-                                dataRef[rIndex]["Actividad detallada"] = "";
-                                dataRef[rIndex]["Codigo producto MGA"] = "";
+                        // ---- INICIO LÓGICA DE DELTAS PARA ACTUALIZACIONES ----
+                        const rowId = dataRef[rIndex]["ID"];
+                        let targetDeltas = dataRef === appData ? planDeltas : anexoDeltas;
+                        
+                        let isNewRow = targetDeltas.adds.find(r => r["ID"] === rowId);
+                        if (!isNewRow) {
+                            // Si la fila ya existe en Sheets, rastreamos el cambio de esta celda
+                            let existingUpd = targetDeltas.updates.find(u => u.id === rowId && u.field === col);
+                            if (existingUpd) {
+                                existingUpd.value = newValue;
                             } else {
-                                dataRef[rIndex]["ACTIVIDAD MGA"] = "";
-                                dataRef[rIndex]["ACTIVIDADES DETALLADAS"] = "";
-                                dataRef[rIndex]["CÓDIGO PRODUCTO MGA"] = "";
-                                dataRef[rIndex]["PRODUCTO MGA"] = "";
+                                targetDeltas.updates.push({ id: rowId, field: col, value: newValue });
                             }
-                            updateFilterOptions();
-                            renderFunc(); // Fuerza recarga para actualizar las listas desplegables
                         }
 
+                        // Si cambia el Proyecto, limpiar las opciones dependientes en local y en servidor
+                        if (col === "Proyecto") {
+                            const fieldsToClear = dataRef === appData ? 
+                                ["Codigo Actividad  MGA", "Actividad detallada", "Codigo producto MGA"] : 
+                                ["ACTIVIDAD MGA", "ACTIVIDADES DETALLADAS", "CÓDIGO PRODUCTO MGA", "PRODUCTO MGA"];
+                            
+                            fieldsToClear.forEach(f => {
+                                dataRef[rIndex][f] = "";
+                                if (!isNewRow) {
+                                    let eUpd = targetDeltas.updates.find(u => u.id === rowId && u.field === f);
+                                    if (eUpd) eUpd.value = "";
+                                    else targetDeltas.updates.push({ id: rowId, field: f, value: "" });
+                                }
+                            });
+                            updateFilterOptions();
+                            renderFunc();
+                        }
+
+                        // Calcular Costo Total en Anexo y mandarlo por Delta
                         if (dataRef === anexoData && (col === "CANTIDAD" || col === "COSTO UNITARIO")) {
-                            dataRef[rIndex]["COSTO TOTAL"] = (Number(dataRef[rIndex]["CANTIDAD"]) || 0) * (Number(dataRef[rIndex]["COSTO UNITARIO"]) || 0);
+                            let newTotal = (Number(dataRef[rIndex]["CANTIDAD"]) || 0) * (Number(dataRef[rIndex]["COSTO UNITARIO"]) || 0);
+                            if (dataRef[rIndex]["COSTO TOTAL"] !== newTotal) {
+                                dataRef[rIndex]["COSTO TOTAL"] = newTotal;
+                                if (!isNewRow) {
+                                    let existingUpdTotal = targetDeltas.updates.find(u => u.id === rowId && u.field === "COSTO TOTAL");
+                                    if (existingUpdTotal) existingUpdTotal.value = newTotal;
+                                    else targetDeltas.updates.push({ id: rowId, field: "COSTO TOTAL", value: newTotal });
+                                }
+                            }
                             renderFunc(); 
                         }
                         
