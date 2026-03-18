@@ -45,22 +45,10 @@
         .row-locked td:nth-child(1) { background-color: #e2e8f0; font-weight: 600; }
         .row-editable { background-color: var(--editable-bg); transition: background-color 0.3s ease; }
         .row-editable td:nth-child(1) { background-color: #bfdbfe; font-weight: 600; }
-        .row-editable td[contenteditable="true"]:hover { background-color: #dbeafe; cursor: text; outline: 1px dashed var(--primary); }
-        .row-editable td[contenteditable="true"]:focus { background-color: #fff; outline: 2px solid var(--primary); }
-
-        .sort-container { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .sort-icon { color: #94a3b8; font-size: 10px; }
-        .sort-icon.active { color: var(--primary); font-weight: bold; }
-
-        .cell-input { width: 100%; border: 1px solid transparent; background: transparent; font-family: inherit; font-size: 13px; color: inherit; outline: none; padding: 4px; border-radius: 4px; }
-        .cell-input:hover { border: 1px dashed var(--primary); background: #dbeafe; }
-        .cell-input:focus { border: 1px solid var(--primary); background: #fff; }
-        select.cell-input { cursor: pointer; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
         .modal { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .modal-large { width: 650px; text-align: left; }
-        .modal-large h3 { color: var(--warning); margin-top: 0; }
         .modal-large pre { background: #fffbeb; color: #b45309; padding: 15px; border-radius: 6px; font-size: 12px; white-space: pre-wrap; max-height: 300px; overflow-y: auto; font-family: monospace; border: 1px solid #fcd34d; }
         .modal input[type="password"] { width: 100%; padding: 10px; margin: 15px 0; border: 1px solid var(--border); border-radius: 5px; box-sizing: border-box; }
         .error-msg { color: #dc2626; font-size: 12px; margin-bottom: 10px; display: none; }
@@ -192,7 +180,7 @@
     <div class="modal-overlay" id="validationModal">
         <div class="modal modal-large">
             <h3>⚠️ Alerta de Google Sheets</h3>
-            <p style="font-size: 14px; color: var(--text-muted);">Los datos se guardaron, pero la tabla dinámica de Google Sheets (TD Plan de compras POSPRE) reporta diferencias:</p>
+            <p style="font-size: 14px; color: var(--text-muted);">Los datos se guardaron, pero la tabla dinámica reporta diferencias para este proyecto:</p>
             <pre id="validationErrors"></pre>
             <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
                 <button class="btn btn-primary" onclick="document.getElementById('validationModal').style.display='none'">Cerrar</button>
@@ -201,767 +189,283 @@
     </div>
 
     <script>
-        // =========================================================
-        // URL DE TU GOOGLE APPS SCRIPT
-        // =========================================================
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzgyHwr-Zwrm8iinhx-NZk9Jk88GfAxOZk4gSRqgO34R7Yk2kHrY-K_hExIT5WMRZ0/exec";
         
         let saveTimeoutId = null;
-        let hasUnsavedChanges = false; // FLAG PARA ADVERTENCIA DE CIERRE DE PESTAÑA
+        let hasUnsavedChanges = false; 
         let currentView = 'Plan'; 
         let appData = [];
         let anexoData = [];
-
-        // --- SISTEMA DE ACTUALIZACIÓN POR DELTAS (CELDAS) ---
         let planDeltas = { adds: [], updates: [], deletes: [] };
         let anexoDeltas = { adds: [], updates: [], deletes: [] };
 
-        // ADVERTENCIA AL CERRAR PESTAÑA CON DATOS SIN GUARDAR
         window.addEventListener('beforeunload', function (e) {
             if (hasUnsavedChanges || saveTimeoutId) {
-                e.preventDefault();
-                e.returnValue = 'Tienes cambios sin guardar, ¿seguro que quieres salir?';
+                e.preventDefault(); e.returnValue = 'Tienes cambios sin guardar.';
             }
         });
 
-        // Generador de UUID para filas nuevas en la web
         function generateUUID() {
             if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-            return 'temp-xxxx-4xxx-yxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
+            return 'temp-' + Math.random().toString(36).substr(2, 9);
         }
 
-        // Diccionario de Dependencias para saber qué "Mapa" de Excel corresponde a qué columna
         const dependenciasColumna = {
-            // Plan de Compras
-            "Codigo Actividad  MGA": "ActividadMGA",
-            "Actividad detallada": "Detalle",
-            "Codigo producto MGA": "ProductoMGA",
-            // Anexo Presupuestal
-            "ACTIVIDAD MGA": "ActividadMGA",
-            "ACTIVIDADES DETALLADAS": "Detalle",
-            "CÓDIGO PRODUCTO MGA": "ProductoMGA",
-            "PRODUCTO MGA": "ProductoMGA"
+            "Codigo Actividad  MGA": "ActividadMGA", "Actividad detallada": "Detalle", "Codigo producto MGA": "ProductoMGA",
+            "ACTIVIDAD MGA": "ActividadMGA", "ACTIVIDADES DETALLADAS": "Detalle", "CÓDIGO PRODUCTO MGA": "ProductoMGA", "PRODUCTO MGA": "ProductoMGA"
         };
 
-        let mapasDependientes = {}; // Se llenará desde Google Sheets
-
-        // Listas predeterminadas (se combinarán con las de la hoja 'Listas')
+        let mapasDependientes = {}; 
         let listasDesplegables = {
             "Subsecretaría": ["SUBSEC FORMAC CIUDAD", "SUBSEC ORGANIZACION SOCIAL", "SUBSEC PLANEACION LOCAL Y PP", "UNIDAD ADMINISTRATIVA"],
             "Mes de Compra": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
             "ESTADO": ["Planeación", "En Ejecución", "Suspendido", "Liquidado", "Cerrado"],
-            "Unidad de Tiempo": ["D", "M", "A"],
-            "Tipo de Bien": ["Misional", "Generico", "Servicio", "Obra"],
+            "Unidad de Tiempo": ["D", "M", "A"], "Tipo de Bien": ["Misional", "Generico", "Servicio", "Obra"],
             "Modalidad": ["Contratación Directa", "Licitación Pública", "Mínima Cuantía", "Concurso de Méritos", "Selección Abreviada", "Subasta Inversa"],
-            "VALIDADOR ¿REQUIERE CPC?": ["SI", "NO"],
-            "Proyecto": [], // Arranca vacío, se llenará con la hoja 'Listas'
-            "Posición Presupuestaría": [] // Arranca vacío, se llenará con la hoja 'Listas'
+            "VALIDADOR ¿REQUIERE CPC?": ["SI", "NO"], "Proyecto": [], "Posición Presupuestaría": [] 
         };
 
         function updateSaveStatus(status) {
-            const s1 = document.getElementById('saveStatus1');
-            const s2 = document.getElementById('saveStatus2');
-            let className = "status-badge";
-            let text = "";
-
+            const s1 = document.getElementById('saveStatus1'); const s2 = document.getElementById('saveStatus2');
+            let className = "status-badge", text = "";
             if (status === 'saving') { className += " status-saving"; text = "⏳ Guardando..."; } 
             else if (status === 'loading') { className += " status-loading"; text = "🔄 Sincronizando..."; }
             else if (status === 'saved') { className += " status-saved"; text = "✅ Sincronizado"; } 
             else if (status === 'error') { className += " status-error"; text = "❌ Error"; } 
             else if (status === 'warning') { className += " status-error"; text = "⚠️ Diferencias"; }
-
             if(s1) { s1.className = className; s1.innerText = text; }
             if(s2) { s2.className = className; s2.innerText = text; }
         }
 
-        // =========================================================
-        // CARGAR DATOS Y MAPAS DESDE GOOGLE SHEETS
-        // =========================================================
         async function cargarDatosDesdeGoogle() {
             updateSaveStatus('loading');
             try {
                 const response = await fetch(WEB_APP_URL);
                 const result = await response.json();
-
                 if (result.status === 'success') {
-                    // Resetear deltas y estado al cargar datos frescos del servidor
-                    planDeltas = { adds: [], updates: [], deletes: [] };
-                    anexoDeltas = { adds: [], updates: [], deletes: [] };
-                    hasUnsavedChanges = false;
-
-                    if (result.listas === undefined || result.mapasDependientes === undefined) {
-                        showMsg("🚨 Servidor Desactualizado", "La web se conectó a tu Google Sheets, pero el servidor (Apps Script) no está usando la nueva versión del código con Deltas.\n\nPor favor, actualiza tu código en Apps Script y crea una Nueva Implementación.");
-                    }
-
-                    appData = result.planData || [];
-                    anexoData = result.anexoData || [];
-                    mapasDependientes = result.mapasDependientes || {};
-                    
+                    planDeltas = { adds: [], updates: [], deletes: [] }; anexoDeltas = { adds: [], updates: [], deletes: [] };
+                    appData = result.planData || []; anexoData = result.anexoData || []; mapasDependientes = result.mapasDependientes || {};
                     if (result.listas) {
                         for (let key in result.listas) {
                             let normKey = key.trim();
-                            let keySinAcentos = normKey.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                            
-                            let matchedHeader = Object.keys(listasDesplegables).find(k => 
-                                k.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === keySinAcentos
-                            );
-
-                            let opcionesLimpias = result.listas[key].filter(Boolean);
-
-                            if (matchedHeader) listasDesplegables[matchedHeader] = opcionesLimpias;
-                            else listasDesplegables[normKey] = opcionesLimpias;
+                            let matched = Object.keys(listasDesplegables).find(k => k.toLowerCase() === normKey.toLowerCase());
+                            if (matched) listasDesplegables[matched] = result.listas[key].filter(Boolean);
+                            else listasDesplegables[normKey] = result.listas[key].filter(Boolean);
                         }
                     }
-                    
-                    updateFilterOptions();
-                    renderTable();
-                    renderAnexoTable();
-                    updateSaveStatus('saved');
-                } else {
-                    updateSaveStatus('error');
-                    console.error(result.message);
+                    updateFilterOptions(); renderTable(); renderAnexoTable(); updateSaveStatus('saved');
                 }
-            } catch (error) {
-                updateSaveStatus('error');
-                console.error("Error al descargar de Google:", error);
-            }
+            } catch (error) { updateSaveStatus('error'); }
         }
 
-        // FUNCIÓN PARA REVISAR SI UNA FILA ESTÁ 100% VACÍA
-        function isRowEmpty(row) {
-            return !Object.keys(row).some(key => 
-                key !== 'Subsecretaría' && 
-                key !== 'Proyecto' && 
-                key !== 'ID' && // Excluir ID de la comprobación
-                row[key] !== "" && 
-                row[key] !== null && 
-                row[key] !== 0
-            );
-        }
-
-        // =========================================================
-        // GUARDAR DATOS HACIA GOOGLE SHEETS (DEBOUNCE POR DELTAS)
-        // =========================================================
         function triggerAutoSave() {
             if (currentRole === 'Invitado') return; 
-            updateSaveStatus('saving');
-            hasUnsavedChanges = true; 
-            
+            updateSaveStatus('saving'); hasUnsavedChanges = true; 
             if (saveTimeoutId) clearTimeout(saveTimeoutId);
-            
-            saveTimeoutId = setTimeout(() => {
-                ejecutarGuardadoSilencioso();
-            }, 2500); 
+            saveTimeoutId = setTimeout(() => { ejecutarGuardadoSilencioso(); }, 2500); 
         }
 
         async function ejecutarGuardadoSilencioso() {
             try {
-                // Filtramos las filas vacías de los "adds" para no ensuciar Google Sheets
-                const planAdds = planDeltas.adds.filter(row => !isRowEmpty(row));
-                const anexoAdds = anexoDeltas.adds.filter(row => !isRowEmpty(row));
-
                 const payload = {
                     action: 'validarYGuardarDeltas',
-                    planDeltas: { adds: planAdds, updates: planDeltas.updates, deletes: planDeltas.deletes },
-                    anexoDeltas: { adds: anexoAdds, updates: anexoDeltas.updates, deletes: anexoDeltas.deletes }
+                    planDeltas: { adds: planDeltas.adds, updates: planDeltas.updates, deletes: planDeltas.deletes },
+                    anexoDeltas: { adds: anexoDeltas.adds, updates: anexoDeltas.updates, deletes: anexoDeltas.deletes }
                 };
-
-                // Comprobar si hay algo real que enviar
-                const hasPlanChanges = payload.planDeltas.adds.length > 0 || payload.planDeltas.updates.length > 0 || payload.planDeltas.deletes.length > 0;
-                const hasAnexoChanges = payload.anexoDeltas.adds.length > 0 || payload.anexoDeltas.updates.length > 0 || payload.anexoDeltas.deletes.length > 0;
-
-                if (!hasPlanChanges && !hasAnexoChanges) {
-                    updateSaveStatus('saved');
-                    hasUnsavedChanges = false;
-                    return;
-                }
-
-                // Vaciamos las colas para que los usuarios puedan seguir trabajando sin perder datos mientras viajan los actuales
-                planDeltas = { adds: [], updates: [], deletes: [] };
-                anexoDeltas = { adds: [], updates: [], deletes: [] };
-
-                const response = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
+                planDeltas = { adds: [], updates: [], deletes: [] }; anexoDeltas = { adds: [], updates: [], deletes: [] };
+                const response = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
                 const result = await response.json();
-
-                if (result.status === 'success') {
-                    updateSaveStatus('saved');
-                    hasUnsavedChanges = false; 
-                } else if (result.status === 'warning') {
-                    updateSaveStatus('warning');
+                if (result.status === 'success') { updateSaveStatus('saved'); hasUnsavedChanges = false; }
+                else if (result.status === 'warning') {
                     hasUnsavedChanges = false;
                     if (currentView === 'Anexo') {
-                        document.getElementById('validationErrors').innerText = result.errores.join("\n");
-                        document.getElementById('validationModal').style.display = 'flex';
-                    }
-                } else {
-                    updateSaveStatus('error');
-                    console.error("Error backend:", result.message);
+                        let curPro = document.getElementById('filterProyectoAnexo')?.value || "";
+                        let errs = result.errores.filter(e => e.includes(curPro));
+                        if (errs.length > 0) {
+                            updateSaveStatus('warning');
+                            document.getElementById('validationErrors').innerText = errs.join("\n");
+                            document.getElementById('validationModal').style.display = 'flex';
+                        } else updateSaveStatus('saved');
+                    } else updateSaveStatus('saved');
                 }
-            } catch (error) {
-                updateSaveStatus('error');
-            }
+            } catch (error) { updateSaveStatus('error'); }
         }
 
-        // --- FUNCIONES UI GENÉRICAS ---
-        function showMsg(title, body) {
-            document.getElementById('msgModalTitle').innerText = title;
-            document.getElementById('msgModalBody').innerText = body;
-            document.getElementById('msgModal').style.display = 'flex';
-        }
-
-        function switchView(viewName) {
-            currentView = viewName; 
-            if (viewName === 'Anexo') {
-                document.getElementById('viewPlanCompras').classList.add('view-hidden');
-                document.getElementById('viewAnexoPresupuestal').classList.remove('view-hidden');
-                renderAnexoTable();
-            } else {
-                document.getElementById('viewAnexoPresupuestal').classList.add('view-hidden');
-                document.getElementById('viewPlanCompras').classList.remove('view-hidden');
-                renderTable();
-            }
-        }
-
-        // --- ESTRUCTURAS ---
         const predefinedHeaders = ["Subsecretaría", "Tipo de Bien", "Necesidad", "Estudio Previo", "Objeto", "Modalidad", "Causal", "Mes de Compra", "Duración del Proyecto", "Unidad de Tiempo", "Fecha Inicio Ejecución", "Valor Unitario", "Proyecto", "Tipo de Recurso", "Posición Presupuestaría", "Fondo", "Observación", "Indicador Plan de Dllo (Solo producto)", "Codigo Actividad  MGA", "Actividad detallada", "Codigo producto MGA", "Codigo CPC", "ESTADO", "CDP", "Contrato Marco", "RP", "Contratista", "Técnico", "Juridico", "Logístico", "Supervisor Principal", "Supervisor Suplente", "Apoyo a la Supervisión Técnico", "Apoyo a la Supervisión Financiero", "Apoyo a la Supervisión Juridico", "Trasladar"];
         const anexoHeaders = ["Subsecretaría", "Proyecto", "CÓDIGO PRODUCTO MGA", "PRODUCTO MGA", "ACTIVIDAD MGA", "ACTIVIDADES DETALLADAS", "UNIDAD DE MEDIDA", "CANTIDAD", "COSTO UNITARIO", "COSTO TOTAL", "Clasificador por objeto de gasto (POSPRE)", "VALIDADOR ¿REQUIERE CPC?", "VALIDADOR ¿REQUIERE CPC?_1", "Clasificador CPC (Aplica solo para POSPRE en \"Adquisición diferentes de activos\": \"Materiales y suministros\" y \"Adquisición de servicios\")", "Validador sección CPC"];
         const columnasMoneda = ["Valor Unitario", "COSTO UNITARIO", "COSTO TOTAL"];
-        const columnasNumericas = ["Duración del Proyecto", "Necesidad", "Estudio Previo", "CDP", "RP", "CANTIDAD"];
-        const columnasFecha = ["Fecha Inicio Ejecución"];
         const formatMoneda = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
 
-        function toYYYYMMDD(val) {
-            if (!val) return "";
-            if (typeof val === 'number') { 
-                let date = new Date(Math.round((val - 25569) * 86400 * 1000));
-                date = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
-                return date.toISOString().split('T')[0];
-            }
-            if (typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2}$/)) return val;
-            let d = new Date(val);
-            if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-            return val;
-        }
-
-        function toDDMMAAAA(val) {
-            const ymd = toYYYYMMDD(val);
-            if (ymd && ymd.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                const parts = ymd.split('-');
-                return `${parts[2]}/${parts[1]}/${parts[0]}`; 
-            }
-            return val;
-        }
+        function toYYYYMMDD(v) { if(!v) return ""; let d = new Date(v); return isNaN(d.getTime()) ? v : d.toISOString().split('T')[0]; }
+        function toDDMMAAAA(v) { let ymd = toYYYYMMDD(v); if(ymd.includes('-')){ let p=ymd.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; } return v; }
 
         function updateFilterOptions() {
-            const proyectos = new Set();
-            const estados = new Set();
-            appData.forEach(row => {
-                if (row["Proyecto"] !== undefined && row["Proyecto"] !== "") proyectos.add(row["Proyecto"]);
-                if (row["ESTADO"] !== undefined && row["ESTADO"] !== "") estados.add(row["ESTADO"]);
-            });
-            const selProyecto = document.getElementById('filterProyecto');
-            const selEstado = document.getElementById('filterEstado');
-            if (selProyecto) {
-                const currProy = selProyecto.value;
-                let opcionesProy = (listasDesplegables["Proyecto"] && listasDesplegables["Proyecto"].length > 0) ? listasDesplegables["Proyecto"] : Array.from(proyectos).sort();
-                selProyecto.innerHTML = '<option value="">Todos los Proyectos</option>' + opcionesProy.map(p => `<option value="${p}">${p}</option>`).join('');
-                if(opcionesProy.includes(currProy)) selProyecto.value = currProy;
-            }
-            if (selEstado) {
-                const currEst = selEstado.value;
-                selEstado.innerHTML = '<option value="">Todos los Estados</option>' + Array.from(estados).sort().map(e => `<option value="${e}">${e}</option>`).join('');
-                if(Array.from(estados).includes(currEst)) selEstado.value = currEst;
-            }
-
-            const proyectosAnexo = new Set();
-            anexoData.forEach(row => {
-                if (row["Proyecto"] !== undefined && row["Proyecto"] !== "") proyectosAnexo.add(row["Proyecto"]);
-            });
-            const selProyectoAnexo = document.getElementById('filterProyectoAnexo');
-            if (selProyectoAnexo) {
-                const currProyAnexo = selProyectoAnexo.value;
-                let opcionesProyAnex = (listasDesplegables["Proyecto"] && listasDesplegables["Proyecto"].length > 0) ? listasDesplegables["Proyecto"] : Array.from(proyectosAnexo).sort();
-                selProyectoAnexo.innerHTML = opcionesProyAnex.map(p => `<option value="${p}">${p}</option>`).join('');
-                if(opcionesProyAnex.includes(currProyAnexo)) {
-                    selProyectoAnexo.value = currProyAnexo;
-                } else if (opcionesProyAnex.length > 0) {
-                    selProyectoAnexo.value = opcionesProyAnex[0];
-                }
+            const p1 = new Set(), e1 = new Set();
+            appData.forEach(r => { if(r.Proyecto) p1.add(r.Proyecto); if(r.ESTADO) e1.add(r.ESTADO); });
+            const selP = document.getElementById('filterProyecto'), selE = document.getElementById('filterEstado');
+            if(selP) selP.innerHTML = '<option value="">Todos los Proyectos</option>' + Array.from(p1).sort().map(p => `<option value="${p}">${p}</option>`).join('');
+            if(selE) selE.innerHTML = '<option value="">Todos los Estados</option>' + Array.from(e1).sort().map(e => `<option value="${e}">${e}</option>`).join('');
+            const p2 = new Set(); anexoData.forEach(r => { if(r.Proyecto) p2.add(r.Proyecto); });
+            const selPA = document.getElementById('filterProyectoAnexo');
+            if(selPA) {
+                let opts = Array.from(p2).sort();
+                selPA.innerHTML = opts.map(p => `<option value="${p}">${p}</option>`).join('');
+                if(opts.length > 0 && !selPA.value) selPA.value = opts[0];
             }
         }
 
         let sortCol = null; let sortAsc = true;
         function toggleSort(col, isAnexo = false) {
             if (sortCol === col) sortAsc = !sortAsc; else { sortCol = col; sortAsc = true; }
-            let dataArray = isAnexo ? anexoData : appData;
-            dataArray.sort((a, b) => {
-                let valA = a[col] !== undefined ? a[col] : "";
-                let valB = b[col] !== undefined ? b[col] : "";
-                if (columnasNumericas.includes(col) || columnasMoneda.includes(col)) {
-                    valA = valA === "" ? -Infinity : Number(valA);
-                    valB = valB === "" ? -Infinity : Number(valB);
-                } else {
-                    valA = String(valA).toLowerCase(); valB = String(valB).toLowerCase();
-                }
-                if (valA < valB) return sortAsc ? -1 : 1;
-                if (valA > valB) return sortAsc ? 1 : -1;
-                return 0;
+            let arr = isAnexo ? anexoData : appData;
+            arr.sort((a,b) => {
+                let vA = a[col]||"", vB = b[col]||"";
+                if(columnasMoneda.includes(col)) { vA=Number(vA); vB=Number(vB); }
+                return sortAsc ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1);
             });
             isAnexo ? renderAnexoTable() : renderTable();
         }
 
-        // --- ROLES Y PERMISOS (Nuevas Contraseñas Asignadas) ---
-        const rolePasswords = { 
-            "Equipo de Contratación": "EquipoContrat", 
-            "Subsecretaría de Formación y Participación Ciudadana": "Formacion", 
-            "Subsecretaría de Organización Social": "OrgSocial", 
-            "Subsecretaria de Planeación Local y PP": "LocalPP26", 
-            "Unidad Administrativa": "UnidadAdmin" 
-        };
-        let currentRole = "Invitado"; let pendingRole = ""; let roleSelect = document.getElementById('roleSelector');
-        
-        roleSelect.addEventListener('change', (e) => {
-            if (e.target.value === "Invitado") { currentRole = "Invitado"; renderTable(); renderAnexoTable(); return; }
-            pendingRole = e.target.value;
-            document.getElementById('modalRoleName').innerText = `Rol: ${pendingRole}`;
-            document.getElementById('passwordInput').value = '';
-            document.getElementById('errorMsg').style.display = 'none';
-            document.getElementById('passwordModal').style.display = 'flex';
-            document.getElementById('passwordInput').focus();
+        const rolePasswords = { "Equipo de Contratación": "EquipoContrat", "Subsecretaría de Formación y Participación Ciudadana": "Formacion", "Subsecretaría de Organización Social": "OrgSocial", "Subsecretaria de Planeación Local y PP": "LocalPP26", "Unidad Administrativa": "UnidadAdmin" };
+        let currentRole = "Invitado", pendingRole = "";
+        document.getElementById('roleSelector').addEventListener('change', (e) => {
+            if(e.target.value === "Invitado"){ currentRole="Invitado"; renderTable(); renderAnexoTable(); return; }
+            pendingRole = e.target.value; document.getElementById('modalRoleName').innerText = pendingRole;
+            document.getElementById('passwordInput').value = ""; document.getElementById('passwordModal').style.display = "flex";
         });
-
-        // Habilitar la tecla "Enter" para la contraseña
-        document.getElementById('passwordInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                verifyPassword();
-            }
-        });
-
-        function verifyPassword() {
-            if (document.getElementById('passwordInput').value === rolePasswords[pendingRole]) {
-                currentRole = pendingRole;
-                document.getElementById('passwordModal').style.display = 'none';
-                renderTable(); renderAnexoTable();
-            } else { document.getElementById('errorMsg').style.display = 'block'; }
+        function verifyPassword(){
+            if(document.getElementById('passwordInput').value === rolePasswords[pendingRole]){
+                currentRole = pendingRole; document.getElementById('passwordModal').style.display="none"; renderTable(); renderAnexoTable();
+            } else { document.getElementById('errorMsg').style.display="block"; }
         }
+        function cancelRoleChange(){ document.getElementById('passwordModal').style.display="none"; document.getElementById('roleSelector').value = currentRole; }
 
-        function cancelRoleChange() { document.getElementById('passwordModal').style.display = 'none'; roleSelect.value = currentRole; }
-
-        function getSubsecretariaFromRole(roleName) {
-            if (roleName.includes("Formación")) return "SUBSEC FORMAC CIUDAD";
-            if (roleName.includes("Organización")) return "SUBSEC ORGANIZACION SOCIAL";
-            if (roleName.includes("Planeación")) return "SUBSEC PLANEACION LOCAL Y PP";
-            if (roleName.includes("Unidad Administrativa")) return "UNIDAD ADMINISTRATIVA";
-            return "";
-        }
-
-        function checkPermissions(rowOwnerString, roleName) {
-            if (roleName === 'Equipo de Contratación') return true;
-            if (!rowOwnerString && roleName !== 'Invitado') return true; 
-            const ownerNorm = (rowOwnerString || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-            const roleNorm = roleName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-            if (ownerNorm.includes("FORMAC") && roleNorm.includes("FORMACION")) return true;
-            if (ownerNorm.includes("SOCIAL") && roleNorm.includes("SOCIAL")) return true;
-            if (ownerNorm.includes("PLANEACION") && roleNorm.includes("PLANEACION")) return true;
-            if (ownerNorm.includes("UNIDAD ADMINISTRATIVA") && roleNorm.includes("UNIDAD ADMINISTRATIVA")) return true;
-            return ownerNorm === roleNorm;
-        }
-
-        function crearNecesidad() {
-            if (currentRole === 'Invitado') return;
-            const nuevaFila = {}; 
-            nuevaFila["ID"] = generateUUID(); // ASIGNACIÓN DE ID ÚNICO
-            predefinedHeaders.forEach(col => nuevaFila[col] = "");
-            
-            const subsec = getSubsecretariaFromRole(currentRole); if (subsec) nuevaFila["Subsecretaría"] = subsec;
-            appData.push(nuevaFila); 
-            planDeltas.adds.push(nuevaFila); // Seguimiento de Delta (Agregar)
-            
-            updateFilterOptions(); renderTable();
-            
-            // ANIMACIÓN Y AUTO-SCROLL AL CREAR FILA
-            setTimeout(() => { 
-                const wrapper = document.querySelector('#viewPlanCompras .table-wrapper'); 
-                wrapper.scrollTop = wrapper.scrollHeight; 
-                const rows = document.querySelectorAll('#tableBody tr');
-                if (rows.length > 0) {
-                    const lastRow = rows[rows.length - 1];
-                    lastRow.style.backgroundColor = '#fef08a'; // Color amarillo tenue
-                    setTimeout(() => lastRow.style.backgroundColor = '', 2000); // Quita el color tras 2 seg
-                }
-            }, 100);
-            triggerAutoSave(); 
-        }
-
-        function crearFilaAnexo() {
-            if (currentRole === 'Invitado') return;
-            const nuevaFila = {}; 
-            nuevaFila["ID"] = generateUUID(); // ASIGNACIÓN DE ID ÚNICO
-            anexoHeaders.forEach(col => nuevaFila[col] = "");
-            
-            const subsec = getSubsecretariaFromRole(currentRole); if (subsec) nuevaFila["Subsecretaría"] = subsec;
-            const valProyAnexo = document.getElementById('filterProyectoAnexo')?.value || ""; if (valProyAnexo) nuevaFila["Proyecto"] = valProyAnexo;
-            anexoData.push(nuevaFila); 
-            anexoDeltas.adds.push(nuevaFila); // Seguimiento de Delta (Agregar)
-            
-            updateFilterOptions(); renderAnexoTable();
-            
-            // ANIMACIÓN Y AUTO-SCROLL AL CREAR FILA
-            setTimeout(() => { 
-                const wrapper = document.querySelector('#viewAnexoPresupuestal .table-wrapper'); 
-                wrapper.scrollTop = wrapper.scrollHeight; 
-                const rows = document.querySelectorAll('#anexoTableBody tr');
-                if (rows.length > 0) {
-                    const lastRow = rows[rows.length - 1];
-                    lastRow.style.backgroundColor = '#fef08a';
-                    setTimeout(() => lastRow.style.backgroundColor = '', 2000);
-                }
-            }, 100);
-            triggerAutoSave(); 
-        }
-
-        function eliminarFila(type, index) {
-            if (confirm("¿Estás seguro de eliminar esta fila?")) {
-                let dataArray = type === 'Plan' ? appData : anexoData;
-                let targetDeltas = type === 'Plan' ? planDeltas : anexoDeltas;
-                const rowId = dataArray[index]["ID"];
-
-                // Si la fila estaba recién añadida y aún no iba a Sheets, la sacamos de "adds"
-                let addedIndex = targetDeltas.adds.findIndex(r => r["ID"] === rowId);
-                if (addedIndex !== -1) {
-                    targetDeltas.adds.splice(addedIndex, 1);
-                } else {
-                    // Si ya existía en Google Sheets, enviamos la orden de eliminación
-                    targetDeltas.deletes.push(rowId);
-                    // Y quitamos cualquier actualización pendiente de esa fila
-                    targetDeltas.updates = targetDeltas.updates.filter(u => u.id !== rowId);
-                }
-
-                dataArray.splice(index, 1); 
-                updateFilterOptions(); 
-                type === 'Plan' ? renderTable() : renderAnexoTable();
-                triggerAutoSave();
-            }
-        }
-
-        const getColStyle = (colName) => {
-            if (colName.includes('Actividad') || colName.includes('ACTIVIDAD')) return 'style="max-width: 250px; min-width: 200px; white-space: normal; line-height: 1.4;"';
-            if (colName.includes('Observación') || colName.includes('Objeto') || colName.includes('PRODUCTO')) return 'style="max-width: 250px; min-width: 150px; white-space: normal; line-height: 1.4;"';
-            if (colName === 'Trasladar') return 'style="max-width: 200px; min-width: 150px; white-space: normal; line-height: 1.4;"'; 
-            if (colName === 'Causal' || colName === 'Duración del Proyecto') return 'style="max-width: 90px; white-space: normal; line-height: 1.4;"';
-            if (colName === 'Indicador Plan de Dllo (Solo producto)') return 'style="max-width: 120px; white-space: normal; line-height: 1.4;"';
-            if (colName === 'ESTADO') return 'style="min-width: 140px;"';
-            if (colName.includes('Clasificador CPC (Aplica solo para POSPRE')) return 'style="max-width: 160px; min-width: 120px; white-space: normal; line-height: 1.4;"';
+        const getColStyle = (c) => {
+            if(c === 'Causal' || c === 'Duración del Proyecto') return 'style="max-width: 90px; white-space: normal;"';
+            if(c === 'Indicador Plan de Dllo (Solo producto)') return 'style="max-width: 120px; white-space: normal;"';
+            if(c === 'ESTADO') return 'style="min-width: 140px;"';
+            if(c.includes('Clasificador CPC')) return 'style="max-width: 160px; white-space: normal;"';
+            if(c.includes('Objeto') || c.includes('Actividad')) return 'style="max-width: 250px; white-space: normal;"';
             return '';
         };
 
         function renderTable() {
             document.getElementById('btnCrearNecesidad').style.display = (currentRole !== 'Invitado') ? 'flex' : 'none';
             const tbody = document.getElementById('tableBody');
-            
-            let headerHTML = '<tr>';
-            predefinedHeaders.forEach(col => {
-                let sortClass = sortCol === col ? 'active' : '';
-                headerHTML += `<th ${getColStyle(col)}><div class="sort-container" onclick="toggleSort('${col}')">${col} <span class="sort-icon ${sortClass}">↕</span></div></th>`;
-            });
-            headerHTML += '<th style="text-align:center; width: 40px;">🗑️</th></tr>';
-            document.getElementById('tableHead').innerHTML = headerHTML;
-            tbody.innerHTML = '';
-
-            if(appData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="37" style="text-align: center; padding: 40px; color: var(--text-muted);">No hay datos. Crea una fila para comenzar.</td></tr>`;
-                document.getElementById('summaryBar').innerText = "0 registros";
-                return;
-            }
-
-            let visibleCount = 0, totalValor = 0;
-            const valProy = document.getElementById('filterProyecto')?.value || "";
-            const valEst = document.getElementById('filterEstado')?.value || "";
-
-            appData.forEach((row, index) => {
-                if (valProy && String(row["Proyecto"]) !== valProy) return;
-                if (valEst && String(row["ESTADO"]) !== valEst) return;
-
-                visibleCount++;
-                if (!isNaN(row["Valor Unitario"]) && row["Valor Unitario"] !== "") totalValor += Number(row["Valor Unitario"]);
-
-                const canEdit = checkPermissions(row["Subsecretaría"], currentRole);
-                const tr = document.createElement('tr');
-                tr.className = canEdit ? 'row-editable' : 'row-locked';
-
-                let rowHTML = ``;
-                predefinedHeaders.forEach(colName => {
-                    const cellValue = row[colName] !== undefined ? row[colName] : '';
-                    const isProtected = colName.toLowerCase().includes('subsecretar') && currentRole !== 'Equipo de Contratación'; 
-                    
-                    if (canEdit && !isProtected) {
-                        let depKey = dependenciasColumna[colName];
-                        if (depKey) {
-                            // LÓGICA DE LISTA DESPLEGABLE DEPENDIENTE DEL PROYECTO
-                            let proyectoActual = String(row["Proyecto"] || "").trim();
-                            let opcionesPermitidas = (mapasDependientes[depKey] && mapasDependientes[depKey][proyectoActual]) ? mapasDependientes[depKey][proyectoActual] : [];
-                            
-                            // Nuevo: si está vacío, avisa por qué
-                            let defaultText = !proyectoActual ? "- Elige un Proyecto -" : (opcionesPermitidas.length === 0 ? "- Sin datos en Anexo -" : "- Seleccionar -");
-                            let options = `<option value="">${defaultText}</option>` + opcionesPermitidas.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
-                            
-                            rowHTML += `<td ${getColStyle(colName)}><select class="cell-input plan-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
-
-                        } else if (listasDesplegables[colName] !== undefined) {
-                            // Lista desplegable normal (Garantizado)
-                            let opcionesLista = listasDesplegables[colName] || [];
-                            // Nuevo: si la hoja "Listas" de Excel no tiene datos abajo del título, avisamos
-                            let defaultText = opcionesLista.length === 0 ? "- Vacío en Listas -" : "- Seleccionar -";
-                            let options = `<option value="">${defaultText}</option>` + opcionesLista.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
-                            
-                            rowHTML += `<td ${getColStyle(colName)}><select class="cell-input plan-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
-                        } else if (columnasMoneda.includes(colName)) {
-                            rowHTML += `<td ${getColStyle(colName)}><input type="text" class="cell-input currency-input plan-input" data-index="${index}" data-col="${colName}" value="${(cellValue !== "" && !isNaN(cellValue)) ? formatMoneda(cellValue) : ""}"></td>`;
-                        } else if (columnasFecha.includes(colName)) {
-                            rowHTML += `<td ${getColStyle(colName)}><input type="date" class="cell-input plan-input" data-index="${index}" data-col="${colName}" value="${toYYYYMMDD(cellValue)}"></td>`;
-                        } else if (columnasNumericas.includes(colName)) {
-                            rowHTML += `<td ${getColStyle(colName)}><input type="number" class="cell-input plan-input" data-index="${index}" data-col="${colName}" value="${cellValue}"></td>`;
-                        } else {
-                            rowHTML += `<td ${getColStyle(colName)} contenteditable="true" class="plan-input" data-index="${index}" data-col="${colName}">${cellValue}</td>`;
-                        }
-                    } else {
-                        let displayVal = cellValue;
-                        if (columnasMoneda.includes(colName) && cellValue !== "") displayVal = formatMoneda(cellValue);
-                        else if (columnasFecha.includes(colName) && cellValue !== "") displayVal = toDDMMAAAA(cellValue);
-                        rowHTML += `<td ${getColStyle(colName)}>${displayVal}</td>`;
-                    }
+            let h = '<tr>'; predefinedHeaders.forEach(c => h += `<th ${getColStyle(c)} onclick="toggleSort('${c}')">${c}</th>`);
+            h += '<th>🗑️</th></tr>'; document.getElementById('tableHead').innerHTML = h; tbody.innerHTML = '';
+            let vis = 0, tot = 0; let fP = document.getElementById('filterProyecto').value, fE = document.getElementById('filterEstado').value;
+            appData.forEach((r, i) => {
+                if(fP && r.Proyecto !== fP) return; if(fE && r.ESTADO !== fE) return;
+                vis++; tot += Number(r["Valor Unitario"])||0;
+                let can = checkPermissions(r["Subsecretaría"], currentRole);
+                let tr = document.createElement('tr'); tr.className = can ? 'row-editable' : 'row-locked';
+                predefinedHeaders.forEach(cn => {
+                    let v = r[cn]||''; let td = document.createElement('td'); Object.assign(td, { innerHTML: v }); 
+                    if(can){
+                        if(listasDesplegables[cn] || dependenciasColumna[cn]){
+                            let opts = listasDesplegables[cn] || (mapasDependientes[dependenciasColumna[cn]]?.[r.Proyecto] || []);
+                            td.innerHTML = `<select class="cell-input plan-input" data-index="${i}" data-col="${cn}"><option value="">- Seleccionar -</option>${opts.map(o=>`<option value="${o}" ${v==o?'selected':''}>${o}</option>`).join('')}</select>`;
+                        } else if(columnasMoneda.includes(cn)) td.innerHTML = `<input type="text" class="cell-input curr plan-input" data-index="${i}" data-col="${cn}" value="${v?formatMoneda(v):''}">`;
+                        else td.contentEditable = true; td.className = "plan-input"; td.dataset.index = i; td.dataset.col = cn;
+                    } else if(columnasMoneda.includes(cn) && v) td.innerText = formatMoneda(v);
+                    tr.appendChild(td);
                 });
-
-                rowHTML += '<td style="text-align:center;">' + (canEdit ? `<button class="btn-delete" title="Eliminar fila" onclick="eliminarFila('Plan', ${index})">❌</button>` : '') + '</td>';
-                tr.innerHTML = rowHTML; tbody.appendChild(tr);
+                let delTd = document.createElement('td'); if(can) delTd.innerHTML = `<button class="btn-delete" onclick="eliminarFila('Plan', ${i})">❌</button>`;
+                tr.appendChild(delTd); tbody.appendChild(tr);
             });
-
-            // CAMBIO DE TEXTO: Suma visible a Total
-            document.getElementById('summaryBar').innerText = `Mostrando ${visibleCount} de ${appData.length} registros | Total: ${formatMoneda(totalValor)}`;
+            document.getElementById('summaryBar').innerText = `Mostrando ${vis} de ${appData.length} | Total: ${formatMoneda(tot)}`;
             attachListeners('plan-input', appData, renderTable);
         }
-
-        function onProyectoAnexoChange() { renderAnexoTable(); }
 
         function renderAnexoTable() {
             document.getElementById('btnCrearFilaAnexo').style.display = (currentRole !== 'Invitado') ? 'flex' : 'none';
             const tbody = document.getElementById('anexoTableBody');
-            const valProyAnexo = document.getElementById('filterProyectoAnexo')?.value || "";
-
-            let headerHTML = '<tr>';
-            anexoHeaders.forEach(col => {
-                let displayCol = col === "VALIDADOR ¿REQUIERE CPC?_1" ? "VALIDADOR ¿REQUIERE CPC? (Copia)" : col;
-                let sortClass = sortCol === col ? 'active' : '';
-                headerHTML += `<th ${getColStyle(col)}><div class="sort-container" onclick="toggleSort('${col}', true)">${displayCol} <span class="sort-icon ${sortClass}">↕</span></div></th>`;
-            });
-            headerHTML += '<th style="text-align:center; width: 40px;">🗑️</th></tr>';
-            document.getElementById('anexoTableHead').innerHTML = headerHTML;
-            tbody.innerHTML = '';
-
-            if(anexoData.length === 0 || !valProyAnexo) {
-                tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; padding: 40px; color: var(--text-muted);">No hay datos para este proyecto o el anexo está vacío.</td></tr>`;
-                document.getElementById('summaryBarAnexo').innerText = `Total: $ 0`;
-                return;
-            }
-
-            let totalValor = 0;
-            anexoData.forEach((row, index) => {
-                if (String(row["Proyecto"]) !== String(valProyAnexo)) return;
-                if (!isNaN(row["COSTO TOTAL"]) && row["COSTO TOTAL"] !== "") totalValor += Number(row["COSTO TOTAL"]);
-
-                const canEdit = checkPermissions(row["Subsecretaría"], currentRole);
-                const tr = document.createElement('tr');
-                tr.className = canEdit ? 'row-editable' : 'row-locked';
-
-                let rowHTML = ``;
-                anexoHeaders.forEach(colName => {
-                    const cellValue = row[colName] !== undefined ? row[colName] : '';
-                    const isProtected = colName.toLowerCase().includes('subsecretar') && currentRole !== 'Equipo de Contratación'; 
-                    
-                    if (canEdit && !isProtected) {
-                        if (colName === "COSTO TOTAL") {
-                            rowHTML += `<td ${getColStyle(colName)}><strong>${(cellValue !== "" && !isNaN(cellValue)) ? formatMoneda(cellValue) : "$ 0"}</strong></td>`;
-                        } else {
-                            let depKey = dependenciasColumna[colName];
-                            if (depKey) {
-                                // LÓGICA DE LISTA DEPENDIENTE
-                                let proyectoActual = String(row["Proyecto"] || "").trim();
-                                let opcionesPermitidas = (mapasDependientes[depKey] && mapasDependientes[depKey][proyectoActual]) ? mapasDependientes[depKey][proyectoActual] : [];
-                                
-                                let defaultText = !proyectoActual ? "- Elige un Proyecto -" : (opcionesPermitidas.length === 0 ? "- Sin datos en Anexo -" : "- Seleccionar -");
-                                let options = `<option value="">${defaultText}</option>` + opcionesPermitidas.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
-                                rowHTML += `<td ${getColStyle(colName)}><select class="cell-input anexo-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
-                            }
-                            // Aquí hacemos que la columna del Anexo use la lista simple de "Posición Presupuestaría"
-                            else if (colName === "Clasificador por objeto de gasto (POSPRE)" && listasDesplegables["Posición Presupuestaría"] !== undefined) {
-                                let opcionesLista = listasDesplegables["Posición Presupuestaría"] || [];
-                                let defaultText = opcionesLista.length === 0 ? "- Vacío en Listas -" : "- Seleccionar -";
-                                let options = `<option value="">${defaultText}</option>` + opcionesLista.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
-                                rowHTML += `<td ${getColStyle(colName)}><select class="cell-input anexo-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
-                            }
-                            else if (listasDesplegables[colName.replace('_1', '')] !== undefined) {
-                                let cleanCol = colName.replace('_1', '');
-                                let opcionesLista = listasDesplegables[cleanCol] || [];
-                                let defaultText = opcionesLista.length === 0 ? "- Vacío en Listas -" : "- Seleccionar -";
-                                let options = `<option value="">${defaultText}</option>` + opcionesLista.map(opt => `<option value="${opt}" ${cellValue == opt ? 'selected' : ''}>${opt}</option>`).join('');
-                                rowHTML += `<td ${getColStyle(colName)}><select class="cell-input anexo-input" data-index="${index}" data-col="${colName}">${options}</select></td>`;
-                            } else if (columnasMoneda.includes(colName)) {
-                                rowHTML += `<td ${getColStyle(colName)}><input type="text" class="cell-input currency-input anexo-input" data-index="${index}" data-col="${colName}" value="${(cellValue !== "" && !isNaN(cellValue)) ? formatMoneda(cellValue) : ""}"></td>`;
-                            } else if (columnasNumericas.includes(colName)) {
-                                rowHTML += `<td ${getColStyle(colName)}><input type="number" class="cell-input anexo-input" data-index="${index}" data-col="${colName}" value="${cellValue}"></td>`;
-                            } else {
-                                rowHTML += `<td ${getColStyle(colName)} contenteditable="true" class="anexo-input" data-index="${index}" data-col="${colName}">${cellValue}</td>`;
-                            }
-                        }
-                    } else {
-                        rowHTML += `<td ${getColStyle(colName)}>${columnasMoneda.includes(colName) && cellValue !== "" ? formatMoneda(cellValue) : cellValue}</td>`;
-                    }
+            let h = '<tr>'; anexoHeaders.forEach(c => h += `<th ${getColStyle(c)} onclick="toggleSort('${c}', true)">${c}</th>`);
+            h += '<th>🗑️</th></tr>'; document.getElementById('anexoTableHead').innerHTML = h; tbody.innerHTML = '';
+            let tot = 0, fP = document.getElementById('filterProyectoAnexo').value;
+            anexoData.forEach((r, i) => {
+                if(r.Proyecto !== fP) return; tot += Number(r["COSTO TOTAL"])||0;
+                let can = checkPermissions(r["Subsecretaría"], currentRole);
+                let tr = document.createElement('tr'); tr.className = can ? 'row-editable' : 'row-locked';
+                anexoHeaders.forEach(cn => {
+                    let v = r[cn]||''; let td = document.createElement('td');
+                    if(can && cn !== "COSTO UNITARIO"){
+                        if(listasDesplegables[cn.replace('_1','')] || cn === "Clasificador por objeto de gasto (POSPRE)"){
+                            let ln = cn === "Clasificador por objeto de gasto (POSPRE)" ? "Posición Presupuestaría" : cn.replace('_1','');
+                            td.innerHTML = `<select class="cell-input anexo-input" data-index="${i}" data-col="${cn}"><option value="">- Seleccionar -</option>${(listasDesplegables[ln]||[]).map(o=>`<option value="${o}" ${v==o?'selected':''}>${o}</option>`).join('')}</select>`;
+                        } else if(columnasMoneda.includes(cn)) td.innerHTML = `<input type="text" class="cell-input curr anexo-input" data-index="${i}" data-col="${cn}" value="${v?formatMoneda(v):''}">`;
+                        else td.contentEditable = true; td.className = "anexo-input"; td.dataset.index = i; td.dataset.col = cn;
+                    } else td.innerText = columnasMoneda.includes(cn) && v ? formatMoneda(v) : v;
+                    tr.appendChild(td);
                 });
-
-                rowHTML += '<td style="text-align:center;">' + (canEdit ? `<button class="btn-delete" title="Eliminar fila" onclick="eliminarFila('Anexo', ${index})">❌</button>` : '') + '</td>';
-                tr.innerHTML = rowHTML; tbody.appendChild(tr);
+                let delTd = document.createElement('td'); if(can) delTd.innerHTML = `<button class="btn-delete" onclick="eliminarFila('Anexo', ${i})">❌</button>`;
+                tr.appendChild(delTd); tbody.appendChild(tr);
             });
-
-            document.getElementById('summaryBarAnexo').innerText = `Total: ${formatMoneda(totalValor)}`;
+            document.getElementById('summaryBarAnexo').innerText = `Total Proyecto: ${formatMoneda(tot)}`;
             attachListeners('anexo-input', anexoData, renderAnexoTable);
         }
 
-        function attachListeners(className, dataRef, renderFunc) {
-            document.querySelectorAll(`.${className}`).forEach(cell => {
-                const isCurrency = cell.classList.contains('currency-input');
-                
-                if (isCurrency && cell.tagName !== 'TD') {
-                    cell.addEventListener('focus', (e) => e.target.value = dataRef[e.target.getAttribute('data-index')][e.target.getAttribute('data-col')] || '');
-                    cell.addEventListener('input', (e) => e.target.value = e.target.value.replace(/[^0-9]/g, ''));
-                }
+        function checkPermissions(owner, role) {
+            if(role === 'Equipo de Contratación') return true; if(role === 'Invitado') return false;
+            if(!owner) return true; let o = owner.toUpperCase(), r = role.toUpperCase();
+            if(o.includes("FORMAC") && r.includes("FORMACION")) return true;
+            if(o.includes("ORGANIZ") && r.includes("ORGANIZ")) return true;
+            if(o.includes("PLANEACION") && r.includes("PLANEACION")) return true;
+            if(o.includes("ADMIN") && r.includes("ADMIN")) return true;
+            return o === r;
+        }
 
-                cell.addEventListener(cell.tagName === 'SELECT' ? 'change' : 'blur', (e) => {
-                    const rIndex = e.target.getAttribute('data-index');
-                    const col = e.target.getAttribute('data-col');
-                    let newValue = e.target.value !== undefined ? e.target.value : e.target.innerText.trim();
-                    
-                    // MANEJO DE MONEDA EN CERO AL BORRAR
-                    if (isCurrency) {
-                        newValue = newValue.replace(/\D/g, '');
-                        if (newValue === "") newValue = 0; // Fuerza el 0 matemático
-                    } 
-                    if (!columnasFecha.includes(col)) { newValue = (!isNaN(newValue) && newValue !== "") ? Number(newValue) : (newValue === "" ? "" : newValue); }
-                    
-                    if (dataRef[rIndex][col] !== newValue) {
-                        dataRef[rIndex][col] = newValue;
-
-                        // ---- INICIO LÓGICA DE DELTAS PARA ACTUALIZACIONES ----
-                        const rowId = dataRef[rIndex]["ID"];
-                        let targetDeltas = dataRef === appData ? planDeltas : anexoDeltas;
-                        
-                        let isNewRow = targetDeltas.adds.find(r => r["ID"] === rowId);
-                        if (!isNewRow) {
-                            // Si la fila ya existe en Sheets, rastreamos el cambio de esta celda
-                            let existingUpd = targetDeltas.updates.find(u => u.id === rowId && u.field === col);
-                            if (existingUpd) {
-                                existingUpd.value = newValue;
-                            } else {
-                                targetDeltas.updates.push({ id: rowId, field: col, value: newValue });
-                            }
+        function attachListeners(cls, data, func) {
+            document.querySelectorAll('.'+cls).forEach(el => {
+                el.addEventListener(el.tagName==='SELECT'?'change':'blur', (e) => {
+                    let i = e.target.dataset.index, c = e.target.dataset.col;
+                    let v = e.target.value !== undefined ? e.target.value : e.target.innerText.trim();
+                    if(e.target.classList.contains('curr')){ v = v.replace(/\D/g, ''); if(!v) v=0; }
+                    if(!isNaN(v) && v !== "") v = Number(v);
+                    if(data[i][c] !== v){
+                        data[i][c] = v; let id = data[i].ID; let del = data === appData ? planDeltas : anexoDeltas;
+                        if(!del.adds.find(r=>r.ID===id)){
+                            let u = del.updates.find(x=>x.id===id && x.field===c);
+                            if(u) u.value = v; else del.updates.push({id, field:c, value:v});
                         }
-
-                        // Si cambia el Proyecto, limpiar las opciones dependientes en local y en servidor
-                        if (col === "Proyecto") {
-                            const fieldsToClear = dataRef === appData ? 
-                                ["Codigo Actividad  MGA", "Actividad detallada", "Codigo producto MGA"] : 
-                                ["ACTIVIDAD MGA", "ACTIVIDADES DETALLADAS", "CÓDIGO PRODUCTO MGA", "PRODUCTO MGA"];
-                            
-                            fieldsToClear.forEach(f => {
-                                dataRef[rIndex][f] = "";
-                                if (!isNewRow) {
-                                    let eUpd = targetDeltas.updates.find(u => u.id === rowId && u.field === f);
-                                    if (eUpd) eUpd.value = "";
-                                    else targetDeltas.updates.push({ id: rowId, field: f, value: "" });
-                                }
-                            });
-                            updateFilterOptions();
-                            renderFunc();
+                        if(data === anexoData && (c === "CANTIDAD" || c === "COSTO TOTAL")){
+                            let q = Number(data[i].CANTIDAD)||0, t = Number(data[i].COSTO TOTAL)||0;
+                            data[i]["COSTO UNITARIO"] = q > 0 ? t / q : 0;
                         }
-
-                        // Calcular Costo Total en Anexo y mandarlo por Delta
-                        if (dataRef === anexoData && (col === "CANTIDAD" || col === "COSTO UNITARIO")) {
-                            let newTotal = (Number(dataRef[rIndex]["CANTIDAD"]) || 0) * (Number(dataRef[rIndex]["COSTO UNITARIO"]) || 0);
-                            if (dataRef[rIndex]["COSTO TOTAL"] !== newTotal) {
-                                dataRef[rIndex]["COSTO TOTAL"] = newTotal;
-                                if (!isNewRow) {
-                                    let existingUpdTotal = targetDeltas.updates.find(u => u.id === rowId && u.field === "COSTO TOTAL");
-                                    if (existingUpdTotal) existingUpdTotal.value = newTotal;
-                                    else targetDeltas.updates.push({ id: rowId, field: "COSTO TOTAL", value: newTotal });
-                                }
-                            }
-                            renderFunc(); 
-                        }
-                        
-                        if (isCurrency && cell.tagName !== 'TD') e.target.value = (newValue !== "") ? formatMoneda(newValue) : '';
-                        triggerAutoSave();
+                        func(); triggerAutoSave();
                     }
                 });
             });
         }
 
-        // --- EXPORTACIÓN LOCAL A EXCEL ---
-        function exportData(type) {
-            let dataToExport = type === 'Plan' ? appData : anexoData;
-            let headers = type === 'Plan' ? predefinedHeaders : anexoHeaders;
-            let fileName = type === 'Plan' ? "Plan_de_Compras_2026.xlsx" : "Anexo_Presupuestal_2026.xlsx";
-            if(dataToExport.length === 0) { showMsg("Atención", "No hay datos para exportar."); return; }
-            
-            try {
-                const exportArray = dataToExport.map(row => {
-                    let newRow = {};
-                    headers.forEach(h => {
-                        let val = row[h] !== undefined ? row[h] : "";
-                        // GARANTÍA DE EXPORTACIÓN EN 0
-                        if (columnasMoneda.includes(h) && val === "") val = 0;
-                        newRow[h] = val;
-                    }); 
-                    columnasFecha.forEach(col => { if (newRow[col] && typeof newRow[col] === 'string') { const p = newRow[col].split('-'); if (p.length === 3) newRow[col] = new Date(p[0], p[1] - 1, p[2]); } });
-                    if (newRow["VALIDADOR ¿REQUIERE CPC?_1"] !== undefined) { newRow["VALIDADOR ¿REQUIERE CPC? "] = newRow["VALIDADOR ¿REQUIERE CPC?_1"]; delete newRow["VALIDADOR ¿REQUIERE CPC?_1"]; }
-                    return newRow;
-                });
+        function crearNecesidad(){
+            let n = { ID: generateUUID() }; predefinedHeaders.forEach(c => n[c] = "");
+            let sub = currentRole.includes("Formación")?"SUBSEC FORMAC CIUDAD":currentRole.includes("Organización")?"SUBSEC ORGANIZACION SOCIAL":currentRole.includes("Planeación")?"SUBSEC PLANEACION LOCAL Y PP":currentRole.includes("Admin")?"UNIDAD ADMINISTRATIVA":"";
+            n.Subsecretaría = sub; appData.push(n); planDeltas.adds.push(n); renderTable(); triggerAutoSave();
+        }
+        function crearFilaAnexo(){
+            let n = { ID: generateUUID() }; anexoHeaders.forEach(c => n[c] = "");
+            n.Proyecto = document.getElementById('filterProyectoAnexo').value; anexoData.push(n); anexoDeltas.adds.push(n); renderAnexoTable(); triggerAutoSave();
+        }
+        function eliminarFila(t, i){
+            if(confirm("¿Eliminar?")){
+                let d = t==='Plan'?appData:anexoData, l = t==='Plan'?planDeltas:anexoDeltas, id = d[i].ID;
+                d.splice(i,1); l.deletes.push(id); l.adds = l.adds.filter(x=>x.ID!==id); l.updates = l.updates.filter(x=>x.id!==id);
+                t==='Plan'?renderTable():renderAnexoTable(); triggerAutoSave();
+            }
+        }
+        function onProyectoAnexoChange(){ renderAnexoTable(); }
+        function switchView(v){ currentView=v; document.getElementById('viewPlanCompras').classList.toggle('view-hidden', v==='Anexo'); document.getElementById('viewAnexoPresupuestal').classList.toggle('view-hidden', v==='Plan'); }
 
-                let finalHeaders = headers.map(h => h === "VALIDADOR ¿REQUIERE CPC?_1" ? "VALIDADOR ¿REQUIERE CPC? " : h);
-                const worksheet = XLSX.utils.json_to_sheet(exportArray, { header: finalHeaders, cellDates: true });
-                const range = XLSX.utils.decode_range(worksheet['!ref']);
-                worksheet['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
-
-                const wscols = finalHeaders.map(h => {
-                    if (h.includes('Objeto') || h.includes('Actividad detallada') || h.includes('ACTIVIDADES DETALLADAS')) return { wch: 50 };
-                    if (columnasMoneda.includes(h)) return { wch: 18 };
-                    return { wch: 25 }; 
-                });
-                worksheet['!cols'] = wscols;
-
-                for (let R = range.s.r; R <= range.e.r; ++R) { 
-                    for (let C = range.s.c; C <= range.e.c; ++C) {
-                        const cell = worksheet[XLSX.utils.encode_cell({ r: R, c: C })];
-                        if (!cell) continue; if (!cell.s) cell.s = {};
-                        cell.s.border = { top: { style: "thin", color: { rgb: "000000" } }, bottom: { style: "thin", color: { rgb: "000000" } }, left: { style: "thin", color: { rgb: "000000" } }, right: { style: "thin", color: { rgb: "000000" } } };
-                        if (R === 0) { if (!cell.s.font) cell.s.font = {}; cell.s.font.bold = true; cell.s.fill = { patternType: "solid", fgColor: { rgb: "E2E8F0" } }; } 
-                        else if (columnasMoneda.includes(finalHeaders[C]) && cell.t === 'n') cell.z = '"$"#,##0';
-                        else if (columnasFecha.includes(finalHeaders[C]) && cell.t === 'd') cell.z = 'dd/mm/yyyy';
-                    }
-                }
-                const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, worksheet, fileName.replace(".xlsx", "")); XLSX.writeFile(workbook, fileName);
-            } catch (error) { showMsg("Error", "Ocurrió un error al generar el archivo Excel."); }
+        function exportData(t){
+            let d = t==='Plan'?appData:anexoData, h = t==='Plan'?predefinedHeaders:anexoHeaders, fn = t==='Plan'?"Plan_2026.xlsx":`Anexo_${document.getElementById('filterProyectoAnexo').value}.xlsx`;
+            if(t==='Anexo') d = d.filter(r => r.Proyecto === document.getElementById('filterProyectoAnexo').value);
+            const ws = XLSX.utils.json_to_sheet(d.map(r => { let x={}; h.forEach(c=>x[c]=r[c]||""); return x; }));
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Datos"); XLSX.writeFile(wb, fn);
         }
 
-        // =========================================================
-        // INICIO DE LA APLICACIÓN
-        // =========================================================
         cargarDatosDesdeGoogle();
-
     </script>
 </body>
 </html>
