@@ -189,8 +189,8 @@
 
     <div class="modal-overlay" id="validationModal">
         <div class="modal modal-large">
-            <h3>⚠️ Alerta de Diferencias</h3>
-            <p style="font-size: 14px; color: var(--text-muted);">Los datos se guardaron, pero el sistema ha detectado diferencias matemáticas para este proyecto:</p>
+            <h3>⚠️ Alerta de Diferencias en POSPRE</h3>
+            <p style="font-size: 14px; color: var(--text-muted);">El sistema ha detectado diferencias matemáticas en la Tabla Dinámica para este proyecto. Revisa los siguientes POSPRE:</p>
             <pre id="validationErrors"></pre>
             <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
                 <button class="btn btn-primary" onclick="document.getElementById('validationModal').style.display='none'">Cerrar</button>
@@ -322,26 +322,35 @@
                 const response = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
                 const result = await response.json();
                 
-                if (result.status === 'success' || result.status === 'warning') { 
+                if (result.status === 'success') { 
                     updateSaveStatus('saved'); hasUnsavedChanges = false; 
+                }
+                else if (result.status === 'warning') {
+                    hasUnsavedChanges = false;
                     
-                    // Cálculo 100% en JavaScript: Infalible, no depende de strings de tabla dinámica
+                    // REVERTIDO: Mostramos la alerta leyendo result.errores directamente desde Google Sheets.
                     if (currentView === 'Anexo') {
                         let curPro = String(document.getElementById('filterProyectoAnexo')?.value || "").trim();
-                        if (curPro) {
-                            let tPlan = 0, tAnex = 0;
-                            appData.forEach(r => { if(String(r.Proyecto) === curPro) tPlan += Number(r["Valor Unitario"])||0; });
-                            anexoData.forEach(r => { if(String(r.Proyecto) === curPro) tAnex += Number(r["COSTO TOTAL"])||0; });
-                            
-                            let diff = Math.abs(tPlan - tAnex);
-                            
-                            if (diff > 1) {
-                                updateSaveStatus('warning');
-                                document.getElementById('validationErrors').innerText = `⚠️ Proyecto: ${curPro}\n\n- Suma en Plan de Compras: ${formatMoneda(tPlan)}\n- Suma en Anexo Presupuestal: ${formatMoneda(tAnex)}\n\n👉 Diferencia detectada: ${formatMoneda(diff)}`;
-                                document.getElementById('validationModal').style.display = 'flex';
+                        let pClean = curPro.replace(/\s+/g, '').toLowerCase();
+                        let numProy = curPro.match(/\d{4,}/g) || []; // Filtro seguro por IDs
+                        
+                        let errs = curPro ? (result.errores || []).filter(e => {
+                            let eClean = String(e).replace(/\s+/g, '').toLowerCase();
+                            // Verifica coincidencia con el nombre del proyecto
+                            if (eClean.includes(pClean)) return true;
+                            // Busca el número de proyecto en la alerta del sheet
+                            for (let num of numProy) {
+                                if (eClean.includes(num)) return true;
                             }
-                        }
-                    }
+                            return false;
+                        }) : [];
+                        
+                        if (errs.length > 0) {
+                            updateSaveStatus('warning');
+                            document.getElementById('validationErrors').innerText = errs.join("\n");
+                            document.getElementById('validationModal').style.display = 'flex';
+                        } else updateSaveStatus('saved');
+                    } else updateSaveStatus('saved');
                 } else {
                     updateSaveStatus('error');
                 }
@@ -416,9 +425,6 @@
         }
         function cancelRoleChange(){ document.getElementById('passwordModal').style.display="none"; document.getElementById('roleSelector').value = currentRole; }
 
-        // =========================================================================
-        // ESTILOS DE COLUMNAS (Obligación estricta de anchos para HTML tables)
-        // =========================================================================
         const getColCss = (c) => {
             let col = String(c).toUpperCase();
             if(['CAUSAL', 'DURACIÓN DEL PROYECTO'].includes(col)) return 'width: 90px; min-width: 90px; max-width: 90px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
@@ -535,7 +541,7 @@
                 tr.appendChild(delTd); tbody.appendChild(tr);
             });
             
-            // Calculo de diferencia en vivo
+            // Calculo de diferencia visual rápida en barra superior
             let totPlan = 0;
             appData.forEach(r => { if(String(r.Proyecto) === String(fP)) totPlan += Number(r["Valor Unitario"])||0; });
             let diff = Math.abs(totPlan - totAnex);
