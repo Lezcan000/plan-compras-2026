@@ -303,13 +303,18 @@
             } catch (error) { 
                 updateSaveStatus('error'); 
             } finally {
-                saveTimeoutId = null; // 🟡 Corrección: Reset de timeout id a null para evitar warning de pestaña
+                saveTimeoutId = null;
             }
         }
 
         const predefinedHeaders = ["Subsecretaría", "Tipo de Bien", "Necesidad", "Estudio Previo", "Objeto", "Modalidad", "Causal", "Mes de Compra", "Duración del Proyecto", "Unidad de Tiempo", "Fecha Inicio Ejecución", "Valor Unitario", "Proyecto", "Tipo de Recurso", "Posición Presupuestaría", "Fondo", "Observación", "Indicador Plan de Dllo (Solo producto)", "Codigo Actividad  MGA", "Actividad detallada", "Codigo producto MGA", "Codigo CPC", "ESTADO", "CDP", "Contrato Marco", "RP", "Contratista", "Técnico", "Juridico", "Logístico", "Supervisor Principal", "Supervisor Suplente", "Apoyo a la Supervisión Técnico", "Apoyo a la Supervisión Financiero", "Apoyo a la Supervisión Juridico", "Trasladar"];
         const anexoHeaders = ["Subsecretaría", "Proyecto", "CÓDIGO PRODUCTO MGA", "PRODUCTO MGA", "ACTIVIDAD MGA", "ACTIVIDADES DETALLADAS", "UNIDAD DE MEDIDA", "CANTIDAD", "COSTO UNITARIO", "COSTO TOTAL", "Clasificador por objeto de gasto (POSPRE)", "VALIDADOR ¿REQUIERE CPC?", "VALIDADOR ¿REQUIERE CPC?_1", "Clasificador CPC (Aplica solo para POSPRE en \"Adquisición diferentes de activos\": \"Materiales y suministros\" y \"Adquisición de servicios\")", "Validador sección CPC"];
+        
+        // 🟢 Reincorporación de listas críticas que se habían omitido por compresión
         const columnasMoneda = ["Valor Unitario", "COSTO UNITARIO", "COSTO TOTAL"];
+        const columnasNumericas = ["Duración del Proyecto", "Necesidad", "Estudio Previo", "CDP", "RP", "CANTIDAD"];
+        const columnasFecha = ["Fecha Inicio Ejecución"];
+        
         const formatMoneda = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
 
         function toYYYYMMDD(v) { 
@@ -317,7 +322,6 @@
             if(typeof v === 'string' && v.match(/^\d{4}-\d{2}-\d{2}$/)) return v;
             let str = typeof v === 'string' && !v.includes('T') ? v + 'T00:00:00' : v;
             let d = new Date(str); 
-            // 🟡 Corrección: Forzamos lectura con mes y día exactos para evitar el bug de zona horaria
             return isNaN(d.getTime()) ? v : d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
         }
         
@@ -387,7 +391,6 @@
                 
                 predefinedHeaders.forEach(cn => {
                     let v = r[cn]||''; let td = document.createElement('td'); 
-                    // 🔴 Corrección: Las llaves {} implementadas para asegurar correctas asignaciones del plan-input
                     if(can){
                         if(listasDesplegables[cn] || dependenciasColumna[cn]){
                             let opts = listasDesplegables[cn] || (mapasDependientes[dependenciasColumna[cn]]?.[r.Proyecto] || []);
@@ -430,7 +433,6 @@
                 
                 anexoHeaders.forEach(cn => {
                     let v = r[cn]||''; let td = document.createElement('td');
-                    // 🔴 Corrección: Las llaves {} implementadas
                     if(can && cn !== "COSTO UNITARIO"){
                         if(listasDesplegables[cn.replace('_1','')] || cn === "Clasificador por objeto de gasto (POSPRE)"){
                             let ln = cn === "Clasificador por objeto de gasto (POSPRE)" ? "Posición Presupuestaría" : cn.replace('_1','');
@@ -460,7 +462,6 @@
         function checkPermissions(owner, role) {
             if(role === 'Equipo de Contratación') return true; if(role === 'Invitado') return false;
             if(!owner) return true; 
-            // 🟡 Corrección: Remover acentos antes de procesar permisos
             let o = owner.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             let r = role.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             if(o.includes("FORMAC") && r.includes("FORMACION")) return true;
@@ -495,7 +496,6 @@
 
         function crearNecesidad(){
             let n = { ID: generateUUID() }; predefinedHeaders.forEach(c => n[c] = "");
-            // 🟡 Corrección: Remover acentos de roles aquí también
             let rNorm = currentRole.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             let sub = rNorm.includes("FORMACION") ? "SUBSEC FORMAC CIUDAD" : rNorm.includes("ORGANIZACION") ? "SUBSEC ORGANIZACION SOCIAL" : rNorm.includes("PLANEACION") ? "SUBSEC PLANEACION LOCAL Y PP" : rNorm.includes("ADMIN") ? "UNIDAD ADMINISTRATIVA" : "";
             n.Subsecretaría = sub; appData.push(n); planDeltas.adds.push(n); renderTable(); triggerAutoSave();
