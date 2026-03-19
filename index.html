@@ -291,7 +291,7 @@
             } catch (error) { updateSaveStatus('error'); }
         }
 
-        const predefinedHeaders = ["Subsecretaría", "Tipo de Bien", "Necesidad", "Estudio Previo", "Objeto", "Modalidad", "Causal", "Mes de Compra", "Duración del Proyecto", "Unidad de Tiempo", "Fecha Inicio Ejecución", "Valor Unitario", "Proyecto", "Tipo de Recurso", "Posición Presupuestaría", "Fondo", "Observación", "Indicador Plan de Dllo (Solo producto)", "Codigo Actividad  MGA", "Actividad detallada", "Codigo producto MGA", "Codigo CPC", "ESTADO", "CDP", "Contrato Marco", "RP", "Contratista", "Técnico", "Juridico", "Logístico", "Supervisor Principal", "Supervisor Suplente", "Apoyo a la Supervisión Técnico", "Apoyo a la Supervisión Financiero", "Apoyo a la Supervisión Juridico", "Trasladar"];
+        const predefinedHeaders = ["Subsecretaría", "Tipo de Bien", "Necesidad", "Estudio Previo", "Objeto", "Modalidad", "Causal", "Mes de Compra", "Duración del Proyecto", "Unidad de Tiempo", "Fecha Inicio Ejecución", "Valor Unitario", "Proyecto", "Tipo de Recurso", "Posición Presupuestaría", "Fondo", "Observación", "Indicador Plan de Dllo (Solo producto)", "Codigo Actividad  MGA", "Actividad detallada", "Codigo producto MGA", "Codigo CPC", "ESTADO", "CDP", "Contrato Marco", "RP", "Contratista", "Técnico", "Juridico", "Logístico", "Supervisor Principal", "Supervisor Suplente", "Apoyo a la Supervisión Técnico", "Apoyo a la Supervisión Financiero", "Apoyo a la Supervisión Jurico", "Trasladar"];
         const anexoHeaders = ["Subsecretaría", "Proyecto", "CÓDIGO PRODUCTO MGA", "PRODUCTO MGA", "ACTIVIDAD MGA", "ACTIVIDADES DETALLADAS", "UNIDAD DE MEDIDA", "CANTIDAD", "COSTO UNITARIO", "COSTO TOTAL", "Clasificador por objeto de gasto (POSPRE)", "VALIDADOR ¿REQUIERE CPC?", "VALIDADOR ¿REQUIERE CPC?_1", "Clasificador CPC (Aplica solo para POSPRE en \"Adquisición diferentes de activos\": \"Materiales y suministros\" y \"Adquisición de servicios\")", "Validador sección CPC"];
         const columnasMoneda = ["Valor Unitario", "COSTO UNITARIO", "COSTO TOTAL"];
         const formatMoneda = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
@@ -430,7 +430,7 @@
                             if(u) u.value = v; else del.updates.push({id, field:c, value:v});
                         }
                         if(data === anexoData && (c === "CANTIDAD" || c === "COSTO TOTAL")){
-                            let q = Number(data[i].CANTIDAD)||0, t = Number(data[i].COSTO TOTAL)||0;
+                            let q = Number(data[i].CANTIDAD)||0, t = Number(data[i]["COSTO TOTAL"])||0;
                             data[i]["COSTO UNITARIO"] = q > 0 ? t / q : 0;
                         }
                         func(); triggerAutoSave();
