@@ -221,49 +221,49 @@
         }
 
         // =========================================================================
-        // MÁSCARAS VISUALES (DICCIONARIO PARA MOSTRAR TÍTULOS BONITOS EN LA WEB)
+        // ENCABEZADOS EXACTOS CON NOMBRES NORMALES (SIN DOBLES ESPACIOS)
         // =========================================================================
-        const headerLabels = {
-            "Subsecretaria": "Subsecretaría", "TipoDeBien": "Tipo de Bien", "EstudioPrevio": "Estudio Previo", 
-            "MesDeCompra": "Mes de Compra", "DuracionDelProyecto": "Duración del Proyecto", "UnidadDeTiempo": "Unidad de Tiempo", 
-            "FechaInicioEjecucion": "Fecha Inicio Ejecución", "ValorUnitario": "Valor Unitario", "TipoDeRecurso": "Tipo de Recurso", 
-            "PosicionPresupuestaria": "Posición Presupuestaría", "Observacion": "Observación", "IndicadorPlanDllo": "Indicador Plan de Dllo", 
-            "CodigoActividadMGA": "Codigo Actividad MGA", "ActividadDetallada": "Actividad detallada", "CodigoProductoMGA": "Codigo producto MGA", 
-            "CodigoCPC": "Codigo CPC", "ContratoMarco": "Contrato Marco", "SupervisorPrincipal": "Supervisor Principal", 
-            "SupervisorSuplente": "Supervisor Suplente", "ApoyoSupervisionTecnico": "Apoyo a la Supervisión Técnico", 
-            "ApoyoSupervisionFinanciero": "Apoyo a la Supervisión Financiero", "ApoyoSupervisionJuridico": "Apoyo a la Supervisión Juridico",
-            "ProductoMGA": "Producto MGA", "ActividadMGA": "Actividad MGA", "ActividadesDetalladas": "Actividades Detalladas", 
-            "UnidadDeMedida": "Unidad de Medida", "CostoUnitario": "Costo Unitario", "CostoTotal": "Costo Total", 
-            "ClasificadorPospre": "Clasificador POSPRE", "ValidadorRequiereCPC": "Validador ¿Requiere CPC?", 
-            "ValidadorRequiereCPC_1": "Validador ¿Requiere CPC? (Copia)", "ClasificadorCPC": "Clasificador CPC", 
-            "ValidadorSeccionCPC": "Validador sección CPC", "Tecnico": "Técnico", "Juridico": "Jurídico", "Logistico": "Logístico"
-        };
+        const predefinedHeaders = [
+            "Subsecretaría", "Tipo de Bien", "Necesidad", "Estudio Previo", "Objeto", "Modalidad", "Causal", 
+            "Mes de Compra", "Duración del Proyecto", "Unidad de Tiempo", "Fecha Inicio Ejecución", "Valor Unitario", 
+            "Proyecto", "Tipo de Recurso", "Posición Presupuestaría", "Fondo", "Observación", "Indicador Plan de Dllo (Solo producto)", 
+            "Codigo Actividad MGA", "Actividad detallada", "Codigo producto MGA", "Codigo CPC", "ESTADO", "CDP", 
+            "Contrato Marco", "RP", "Contratista", "Técnico", "Jurídico", "Logístico", "Supervisor Principal", 
+            "Supervisor Suplente", "Apoyo a la Supervisión Técnico", "Apoyo a la Supervisión Financiero", "Apoyo a la Supervisión Jurídico", 
+            "Trasladar"
+        ];
         
-        function getLabel(c) { return headerLabels[c] || c; }
-
-        // =========================================================================
-        // NUEVOS ENCABEZADOS EN PASCAL CASE (SIN ESPACIOS NI CARACTERES RAROS)
-        // =========================================================================
-        const predefinedHeaders = ["Subsecretaria", "TipoDeBien", "Necesidad", "EstudioPrevio", "Objeto", "Modalidad", "Causal", "MesDeCompra", "DuracionDelProyecto", "UnidadDeTiempo", "FechaInicioEjecucion", "ValorUnitario", "Proyecto", "TipoDeRecurso", "PosicionPresupuestaria", "Fondo", "Observacion", "IndicadorPlanDllo", "CodigoActividadMGA", "ActividadDetallada", "CodigoProductoMGA", "CodigoCPC", "ESTADO", "CDP", "ContratoMarco", "RP", "Contratista", "Tecnico", "Juridico", "Logistico", "SupervisorPrincipal", "SupervisorSuplente", "ApoyoSupervisionTecnico", "ApoyoSupervisionFinanciero", "ApoyoSupervisionJuridico", "Trasladar"];
-        const anexoHeaders = ["Subsecretaria", "Proyecto", "CodigoProductoMGA", "ProductoMGA", "ActividadMGA", "ActividadesDetalladas", "UnidadDeMedida", "Cantidad", "CostoUnitario", "CostoTotal", "ClasificadorPospre", "ValidadorRequiereCPC", "ValidadorRequiereCPC_1", "ClasificadorCPC", "ValidadorSeccionCPC"];
+        const anexoHeaders = [
+            "Subsecretaría", "Proyecto", "CÓDIGO PRODUCTO MGA", "PRODUCTO MGA", "ACTIVIDAD MGA", "ACTIVIDADES DETALLADAS", 
+            "UNIDAD DE MEDIDA", "CANTIDAD", "COSTO UNITARIO", "COSTO TOTAL", "Clasificador por objeto de gasto (POSPRE)", 
+            "VALIDADOR ¿REQUIERE CPC?", "VALIDADOR ¿REQUIERE CPC? (Copia)", "Clasificador CPC", "Validador sección CPC"
+        ];
         
-        const columnasMoneda = ["ValorUnitario", "CostoUnitario", "CostoTotal"];
-        const columnasNumericas = ["DuracionDelProyecto", "Necesidad", "EstudioPrevio", "CDP", "RP", "Cantidad"];
-        const columnasFecha = ["FechaInicioEjecucion"];
+        const columnasMoneda = ["Valor Unitario", "COSTO UNITARIO", "COSTO TOTAL"];
+        const columnasNumericas = ["Duración del Proyecto", "Necesidad", "Estudio Previo", "CDP", "RP", "CANTIDAD"];
+        const columnasFecha = ["Fecha Inicio Ejecución"];
         
         const dependenciasColumna = {
-            "CodigoActividadMGA": "ActividadMGA", "ActividadDetallada": "Detalle", "CodigoProductoMGA": "ProductoMGA",
-            "ActividadMGA": "ActividadMGA", "ActividadesDetalladas": "Detalle"
+            "Codigo Actividad MGA": "ActividadMGA", 
+            "Actividad detallada": "Detalle", 
+            "Codigo producto MGA": "ProductoMGA",
+            "ACTIVIDAD MGA": "ActividadMGA", 
+            "ACTIVIDADES DETALLADAS": "Detalle",
+            "CÓDIGO PRODUCTO MGA": "ProductoMGA", 
+            "PRODUCTO MGA": "ProductoMGA"
         };
 
         let mapasDependientes = {}; 
         let listasDesplegables = {
-            "Subsecretaria": ["SUBSEC FORMAC CIUDAD", "SUBSEC ORGANIZACION SOCIAL", "SUBSEC PLANEACION LOCAL Y PP", "UNIDAD ADMINISTRATIVA"],
-            "MesDeCompra": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+            "Subsecretaría": ["SUBSEC FORMAC CIUDAD", "SUBSEC ORGANIZACION SOCIAL", "SUBSEC PLANEACION LOCAL Y PP", "UNIDAD ADMINISTRATIVA"],
+            "Mes de Compra": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
             "ESTADO": ["Planeación", "En Ejecución", "Suspendido", "Liquidado", "Cerrado"],
-            "UnidadDeTiempo": ["D", "M", "A"], "TipoDeBien": ["Misional", "Generico", "Servicio", "Obra"],
+            "Unidad de Tiempo": ["D", "M", "A"], 
+            "Tipo de Bien": ["Misional", "Generico", "Servicio", "Obra"],
             "Modalidad": ["Contratación Directa", "Licitación Pública", "Mínima Cuantía", "Concurso de Méritos", "Selección Abreviada", "Subasta Inversa"],
-            "ValidadorRequiereCPC": ["SI", "NO"], "Proyecto": [], "PosicionPresupuestaria": [] 
+            "VALIDADOR ¿REQUIERE CPC?": ["SI", "NO"], 
+            "Proyecto": [], 
+            "Posición Presupuestaría": [] 
         };
 
         const formatMoneda = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
@@ -290,7 +290,7 @@
                     appData = result.planData || []; anexoData = result.anexoData || []; mapasDependientes = result.mapasDependientes || {};
                     if (result.listas) {
                         for (let key in result.listas) {
-                            let normKey = key.trim();
+                            let normKey = key.trim().replace(/\s+/g, ' '); // Aseguramos no tener doble espacio
                             let matched = Object.keys(listasDesplegables).find(k => k.toLowerCase() === normKey.toLowerCase());
                             if (matched) listasDesplegables[matched] = result.listas[key].filter(Boolean);
                             else listasDesplegables[normKey] = result.listas[key].filter(Boolean);
@@ -332,7 +332,7 @@
                     hasUnsavedChanges = false;
                     if (currentView === 'Anexo') {
                         let curPro = String(document.getElementById('filterProyectoAnexo')?.value || "").trim();
-                        // Filtro seguro: si curPro está vacío, ignoramos. Si tiene valor, validamos.
+                        // Filtro seguro por proyecto
                         let errs = curPro ? result.errores.filter(e => e.includes(curPro)) : [];
                         
                         if (errs.length > 0) {
@@ -419,11 +419,11 @@
         // ESTILOS DE COLUMNAS (MÁS ANGOSTAS Y CON SALTO DE LÍNEA)
         // =========================================================================
         const getColStyle = (c) => {
-            if(['Causal', 'DuracionDelProyecto'].includes(c)) return 'style="max-width: 90px; white-space: normal; line-height: 1.3;"';
-            if(['IndicadorPlanDllo'].includes(c)) return 'style="max-width: 120px; white-space: normal; line-height: 1.3;"';
+            if(['Causal', 'Duración del Proyecto'].includes(c)) return 'style="max-width: 90px; white-space: normal; line-height: 1.3;"';
+            if(['Indicador Plan de Dllo (Solo producto)'].includes(c)) return 'style="max-width: 120px; white-space: normal; line-height: 1.3;"';
             if(['ESTADO'].includes(c)) return 'style="min-width: 160px;"';
-            if(['ClasificadorCPC'].includes(c)) return 'style="max-width: 160px; white-space: normal; line-height: 1.3;"';
-            if(['Objeto', 'Observacion', 'ActividadDetallada', 'ActividadMGA', 'ActividadesDetalladas'].includes(c)) return 'style="max-width: 250px; min-width: 150px; white-space: normal; line-height: 1.3;"';
+            if(['Clasificador CPC'].includes(c)) return 'style="max-width: 160px; white-space: normal; line-height: 1.3;"';
+            if(['Objeto', 'Observación', 'Actividad detallada', 'ACTIVIDAD MGA', 'ACTIVIDADES DETALLADAS'].includes(c)) return 'style="max-width: 250px; min-width: 150px; white-space: normal; line-height: 1.3;"';
             return '';
         };
 
@@ -431,9 +431,8 @@
             document.getElementById('btnCrearNecesidad').style.display = (currentRole !== 'Invitado') ? 'flex' : 'none';
             const tbody = document.getElementById('tableBody');
             
-            // Render Headers with translated labels
             let h = '<tr>'; 
-            predefinedHeaders.forEach(c => h += `<th ${getColStyle(c)}><div class="sort-container" onclick="toggleSort('${c}')">${getLabel(c)} <span class="sort-icon ${sortCol === c ? 'active' : ''}">↕</span></div></th>`);
+            predefinedHeaders.forEach(c => h += `<th ${getColStyle(c)}><div class="sort-container" onclick="toggleSort('${c}')">${c} <span class="sort-icon ${sortCol === c ? 'active' : ''}">↕</span></div></th>`);
             h += '<th>🗑️</th></tr>'; 
             document.getElementById('tableHead').innerHTML = h; tbody.innerHTML = '';
             
@@ -441,8 +440,8 @@
             appData.forEach((r, i) => {
                 if(fP && String(r.Proyecto) !== String(fP)) return; 
                 if(fE && String(r.ESTADO) !== String(fE)) return;
-                vis++; tot += Number(r["ValorUnitario"])||0;
-                let can = checkPermissions(r["Subsecretaria"], currentRole);
+                vis++; tot += Number(r["Valor Unitario"])||0;
+                let can = checkPermissions(r["Subsecretaría"], currentRole);
                 let tr = document.createElement('tr'); tr.className = can ? 'row-editable' : 'row-locked';
                 
                 predefinedHeaders.forEach(cn => {
@@ -480,24 +479,23 @@
             document.getElementById('btnCrearFilaAnexo').style.display = (currentRole !== 'Invitado') ? 'flex' : 'none';
             const tbody = document.getElementById('anexoTableBody');
             
-            // Render Headers with translated labels
             let h = '<tr>'; 
-            anexoHeaders.forEach(c => h += `<th ${getColStyle(c)}><div class="sort-container" onclick="toggleSort('${c}', true)">${getLabel(c)} <span class="sort-icon ${sortCol === c ? 'active' : ''}">↕</span></div></th>`);
+            anexoHeaders.forEach(c => h += `<th ${getColStyle(c)}><div class="sort-container" onclick="toggleSort('${c}', true)">${c} <span class="sort-icon ${sortCol === c ? 'active' : ''}">↕</span></div></th>`);
             h += '<th>🗑️</th></tr>'; 
             document.getElementById('anexoTableHead').innerHTML = h; tbody.innerHTML = '';
             
             let tot = 0, fP = document.getElementById('filterProyectoAnexo').value;
             anexoData.forEach((r, i) => {
                 if(String(r.Proyecto) !== String(fP)) return; 
-                tot += Number(r["CostoTotal"])||0;
-                let can = checkPermissions(r["Subsecretaria"], currentRole);
+                tot += Number(r["COSTO TOTAL"])||0;
+                let can = checkPermissions(r["Subsecretaría"], currentRole);
                 let tr = document.createElement('tr'); tr.className = can ? 'row-editable' : 'row-locked';
                 
                 anexoHeaders.forEach(cn => {
                     let v = r[cn]||''; let td = document.createElement('td');
-                    if(can && cn !== "CostoUnitario"){
-                        if(listasDesplegables[cn.replace('_1','')] || cn === "ClasificadorPospre"){
-                            let ln = cn === "ClasificadorPospre" ? "PosicionPresupuestaria" : cn.replace('_1','');
+                    if(can && cn !== "COSTO UNITARIO"){
+                        if(listasDesplegables[cn] || cn === "Clasificador por objeto de gasto (POSPRE)" || cn === "VALIDADOR ¿REQUIERE CPC? (Copia)"){
+                            let ln = cn === "Clasificador por objeto de gasto (POSPRE)" ? "Posición Presupuestaría" : (cn === "VALIDADOR ¿REQUIERE CPC? (Copia)" ? "VALIDADOR ¿REQUIERE CPC?" : cn);
                             td.innerHTML = `<select class="cell-input anexo-input" data-index="${i}" data-col="${cn}"><option value="">- Seleccionar -</option>${(listasDesplegables[ln]||[]).map(o=>`<option value="${o}" ${v==o?'selected':''}>${o}</option>`).join('')}</select>`;
                         } else if(columnasMoneda.includes(cn)) {
                             td.innerHTML = `<input type="text" class="cell-input curr anexo-input" data-index="${i}" data-col="${cn}" value="${v?formatMoneda(v):''}">`;
@@ -539,7 +537,7 @@
                     let i = e.target.dataset.index, c = e.target.dataset.col;
                     let v = e.target.value !== undefined ? e.target.value : e.target.innerText.trim();
                     
-                    // 🔴 Corrección: Parsear variables numéricas y moneda sin espacios
+                    // 🔴 Se aplica validación estricta para números (Bug solucionado)
                     if(e.target.classList.contains('curr')){ 
                         v = v.replace(/\D/g, ''); 
                         if(!v) v=0; 
@@ -556,9 +554,9 @@
                             let u = del.updates.find(x=>x.id===id && x.field===c);
                             if(u) u.value = v; else del.updates.push({id, field:c, value:v});
                         }
-                        if(data === anexoData && (c === "Cantidad" || c === "CostoTotal")){
-                            let q = Number(data[i].Cantidad)||0, t = Number(data[i].CostoTotal)||0;
-                            data[i].CostoUnitario = q > 0 ? t / q : 0;
+                        if(data === anexoData && (c === "CANTIDAD" || c === "COSTO TOTAL")){
+                            let q = Number(data[i]["CANTIDAD"])||0, t = Number(data[i]["COSTO TOTAL"])||0;
+                            data[i]["COSTO UNITARIO"] = q > 0 ? t / q : 0;
                         }
                         func(); triggerAutoSave();
                     }
@@ -570,14 +568,14 @@
             let n = { ID: generateUUID() }; predefinedHeaders.forEach(c => n[c] = "");
             let rNorm = String(currentRole).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             let sub = rNorm.includes("FORMACION") ? "SUBSEC FORMAC CIUDAD" : rNorm.includes("ORGANIZACION") ? "SUBSEC ORGANIZACION SOCIAL" : rNorm.includes("PLANEACION") ? "SUBSEC PLANEACION LOCAL Y PP" : rNorm.includes("ADMIN") ? "UNIDAD ADMINISTRATIVA" : "";
-            n.Subsecretaria = sub; appData.push(n); planDeltas.adds.push(n); renderTable(); triggerAutoSave();
+            n["Subsecretaría"] = sub; appData.push(n); planDeltas.adds.push(n); renderTable(); triggerAutoSave();
         }
         
         function crearFilaAnexo(){
             let n = { ID: generateUUID() }; anexoHeaders.forEach(c => n[c] = "");
             let rNorm = String(currentRole).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             let sub = rNorm.includes("FORMACION") ? "SUBSEC FORMAC CIUDAD" : rNorm.includes("ORGANIZACION") ? "SUBSEC ORGANIZACION SOCIAL" : rNorm.includes("PLANEACION") ? "SUBSEC PLANEACION LOCAL Y PP" : rNorm.includes("ADMIN") ? "UNIDAD ADMINISTRATIVA" : "";
-            n.Subsecretaria = sub;
+            n["Subsecretaría"] = sub;
             n.Proyecto = document.getElementById('filterProyectoAnexo').value; anexoData.push(n); anexoDeltas.adds.push(n); renderAnexoTable(); triggerAutoSave();
         }
         
@@ -595,13 +593,11 @@
             let d = t==='Plan'?appData:anexoData, h = t==='Plan'?predefinedHeaders:anexoHeaders, fn = t==='Plan'?"Plan_2026.xlsx":`Anexo_${document.getElementById('filterProyectoAnexo').value}.xlsx`;
             if(t==='Anexo') d = d.filter(r => String(r.Proyecto) === String(document.getElementById('filterProyectoAnexo').value));
             
-            // 🔴 Traducir nombres de columnas en la descarga de Excel a nombres amigables
-            const ws = XLSX.utils.json_to_sheet(d.map(r => { let x={}; h.forEach(c=>x[getLabel(c)]=r[c]||""); return x; }));
+            const ws = XLSX.utils.json_to_sheet(d.map(r => { let x={}; h.forEach(c=>x[c]=r[c]||""); return x; }));
             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Datos"); 
             
-            // Configurar anchos de columna en el Excel para que coincida con la web
             ws['!cols'] = h.map(c => { 
-                if(['Objeto', 'ActividadDetallada', 'ActividadMGA', 'ActividadesDetalladas', 'Observacion'].includes(c)) return { wch: 50 }; 
+                if(['Objeto', 'Actividad detallada', 'ACTIVIDAD MGA', 'ACTIVIDADES DETALLADAS', 'Observación'].includes(c)) return { wch: 50 }; 
                 if(columnasMoneda.includes(c)) return { wch: 18 };
                 return { wch: 25 }; 
             });
