@@ -329,9 +329,19 @@
                     hasUnsavedChanges = false;
                     if (currentView === 'Anexo') {
                         let curPro = String(document.getElementById('filterProyectoAnexo')?.value || "").trim();
-                        let curProClean = curPro.replace(/\s+/g, '').toLowerCase(); // Filtro seguro que quita todos los espacios
+                        let pClean = curPro.replace(/\s+/g, '').toLowerCase();
+                        let numProy = curPro.match(/\d{4,}/g) || []; // Filtro ultra-seguro por IDs del proyecto
                         
-                        let errs = curProClean ? (result.errores || []).filter(e => String(e).replace(/\s+/g, '').toLowerCase().includes(curProClean)) : [];
+                        let errs = curPro ? (result.errores || []).filter(e => {
+                            let eClean = String(e).replace(/\s+/g, '').toLowerCase();
+                            // Verifica coincidencia exacta
+                            if (eClean.includes(pClean)) return true;
+                            // Busca el número identificador en la tabla dinámica
+                            for (let num of numProy) {
+                                if (eClean.includes(num)) return true;
+                            }
+                            return false;
+                        }) : [];
                         
                         if (errs.length > 0) {
                             updateSaveStatus('warning');
@@ -414,15 +424,15 @@
         function cancelRoleChange(){ document.getElementById('passwordModal').style.display="none"; document.getElementById('roleSelector').value = currentRole; }
 
         // =========================================================================
-        // ESTILOS DE COLUMNAS (Devuelve propiedades CSS puras en vez de 'style="..."')
+        // ESTILOS DE COLUMNAS (Obligación estricta de anchos para HTML tables)
         // =========================================================================
         const getColCss = (c) => {
             let col = String(c).toUpperCase();
-            if(['CAUSAL', 'DURACIÓN DEL PROYECTO', 'DURACION DEL PROYECTO'].includes(col)) return 'max-width: 90px; min-width: 80px; white-space: normal; line-height: 1.3; word-break: break-word;';
-            if(col.includes('INDICADOR PLAN DE DLLO')) return 'max-width: 140px; min-width: 110px; white-space: normal; line-height: 1.3; word-break: break-word;';
-            if(['ESTADO'].includes(col)) return 'min-width: 160px;';
-            if(col.includes('CLASIFICADOR CPC')) return 'max-width: 160px; min-width: 130px; white-space: normal; line-height: 1.3; word-break: break-word;';
-            if(['OBJETO', 'OBSERVACIÓN', 'OBSERVACION', 'ACTIVIDAD DETALLADA', 'ACTIVIDAD MGA', 'ACTIVIDADES DETALLADAS'].includes(col)) return 'max-width: 260px; min-width: 160px; white-space: normal; line-height: 1.3; word-break: break-word;';
+            if(['CAUSAL', 'DURACIÓN DEL PROYECTO'].includes(col)) return 'width: 90px; min-width: 90px; max-width: 90px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
+            if(col.includes('INDICADOR PLAN DE DLLO')) return 'width: 140px; min-width: 140px; max-width: 140px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
+            if(['ESTADO'].includes(col)) return 'width: 160px; min-width: 160px; max-width: 160px;';
+            if(col.includes('CLASIFICADOR CPC')) return 'width: 160px; min-width: 160px; max-width: 160px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
+            if(['OBJETO', 'OBSERVACIÓN', 'ACTIVIDAD DETALLADA', 'ACTIVIDAD MGA', 'ACTIVIDADES DETALLADAS'].includes(col)) return 'width: 280px; min-width: 280px; max-width: 280px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
             return 'min-width: 120px;';
         };
 
@@ -450,7 +460,6 @@
                 predefinedHeaders.forEach(cn => {
                     let v = r[cn]||''; let td = document.createElement('td'); 
                     
-                    // Asignamos el estilo directamente a la celda (td) para obligarla a no estirarse
                     let css = getColCss(cn);
                     if (css) td.style.cssText = css;
 
@@ -506,7 +515,6 @@
                 anexoHeaders.forEach(cn => {
                     let v = r[cn]||''; let td = document.createElement('td');
                     
-                    // Asignamos el estilo directamente a la celda (td) para obligarla a no estirarse
                     let css = getColCss(cn);
                     if (css) td.style.cssText = css;
 
