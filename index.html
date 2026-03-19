@@ -250,6 +250,7 @@
         const columnasMoneda = ["Valor Unitario", "COSTO UNITARIO", "COSTO TOTAL"];
         const columnasNumericas = ["Duración del Proyecto", "Necesidad", "Estudio Previo", "CDP", "RP", "CANTIDAD"];
         const columnasFecha = ["Fecha Inicio Ejecución"];
+        const columnasMixtas = ["CDP", "RP", "Contrato Marco", "Contratista"]; // ComboBoxes: Permiten lista o escritura libre
         
         const dependenciasColumna = {
             "Codigo Actividad MGA": "ActividadMGA", 
@@ -263,7 +264,7 @@
 
         let mapasDependientes = {}; 
         let listasDesplegables = {
-            "Subsecretaría": [], // AHORA SE LLENARÁ DIRECTAMENTE DESDE LA HOJA DE LISTAS
+            "Subsecretaría": [], 
             "Mes de Compra": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
             "ESTADO": ["Planeación", "En Ejecución", "Suspendido", "Liquidado", "Cerrado"],
             "Unidad de Tiempo": ["D", "M", "A"], 
@@ -271,7 +272,19 @@
             "Modalidad": ["Contratación Directa", "Licitación Pública", "Mínima Cuantía", "Concurso de Méritos", "Selección Abreviada", "Subasta Inversa"],
             "VALIDADOR ¿REQUIERE CPC?": ["SI", "NO"], 
             "Proyecto": [], 
-            "Posición Presupuestaría": [] 
+            "Posición Presupuestaría": [],
+            "Técnico": [],
+            "Jurídico": [],
+            "Logístico": [],
+            "Supervisor Principal": [],
+            "Supervisor Suplente": [],
+            "Apoyo a la Supervisión Técnico": [],
+            "Apoyo a la Supervisión Financiero": [],
+            "Apoyo a la Supervisión Jurídico": [],
+            "CDP": [],
+            "RP": [],
+            "Contrato Marco": [],
+            "Contratista": []
         };
 
         const formatMoneda = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
@@ -299,12 +312,29 @@
                     if (result.listas) {
                         for (let key in result.listas) {
                             let normKey = key.trim().replace(/\s+/g, ' ');
-                            // Emparejamiento seguro para asegurar que encuentra "Subsecretaría" incluso si faltan tildes
                             let matched = Object.keys(listasDesplegables).find(k => k.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === normKey.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
                             if (matched) listasDesplegables[matched] = result.listas[key].filter(Boolean);
                             else listasDesplegables[normKey] = result.listas[key].filter(Boolean);
                         }
                     }
+                    
+                    // Construir Datalists para columnas mixtas (ComboBoxes)
+                    const datalistsDiv = document.getElementById('datalists') || document.createElement('div');
+                    datalistsDiv.id = 'datalists';
+                    datalistsDiv.innerHTML = '';
+                    columnasMixtas.forEach(col => {
+                        let opts = listasDesplegables[col] || [];
+                        let dl = document.createElement('datalist');
+                        dl.id = 'list-' + col.replace(/\s+/g, '');
+                        opts.forEach(o => {
+                            let opt = document.createElement('option');
+                            opt.value = o;
+                            dl.appendChild(opt);
+                        });
+                        datalistsDiv.appendChild(dl);
+                    });
+                    document.body.appendChild(datalistsDiv);
+
                     updateFilterOptions(); renderTable(); renderAnexoTable(); updateSaveStatus('saved');
                 } else {
                     updateSaveStatus('error');
@@ -456,7 +486,6 @@
             if(role === 'Invitado') return false;
             if(!owner) return true; 
             
-            // Verificación ESTRICTA (Sin flexibilización)
             let o = String(owner).trim().toUpperCase();
             let r = String(role).trim().toUpperCase();
             return o === r;
@@ -492,6 +521,7 @@
                 vis++; tot += Number(r["Valor Unitario"])||0;
                 let can = checkPermissions(r["Subsecretaría"], currentRole);
                 let tr = document.createElement('tr'); tr.className = can ? 'row-editable' : 'row-locked';
+                tr.setAttribute('data-rowid', r.ID);
                 
                 predefinedHeaders.forEach(cn => {
                     let v = r[cn]||''; let td = document.createElement('td'); 
@@ -500,7 +530,10 @@
                     if (css) td.style.cssText = css;
 
                     if(can){
-                        if(listasDesplegables[cn] || dependenciasColumna[cn]){
+                        if (columnasMixtas.includes(cn)) {
+                            let dlId = 'list-' + cn.replace(/\s+/g, '');
+                            td.innerHTML = `<input type="text" class="cell-input plan-input" data-index="${i}" data-col="${cn}" list="${dlId}" value="${v}">`;
+                        } else if(listasDesplegables[cn] || dependenciasColumna[cn]){
                             let opts = listasDesplegables[cn] || (mapasDependientes[dependenciasColumna[cn]]?.[r.Proyecto] || []);
                             let found = false;
                             let optionsHTML = `<option value="">- Seleccionar -</option>`;
@@ -556,6 +589,7 @@
                 totAnex += Number(r["COSTO TOTAL"])||0;
                 let can = checkPermissions(r["Subsecretaría"], currentRole);
                 let tr = document.createElement('tr'); tr.className = can ? 'row-editable' : 'row-locked';
+                tr.setAttribute('data-rowid', r.ID);
                 
                 anexoHeaders.forEach(cn => {
                     let v = r[cn]||''; let td = document.createElement('td');
@@ -564,7 +598,10 @@
                     if (css) td.style.cssText = css;
 
                     if(can && cn !== "COSTO UNITARIO"){
-                        if(listasDesplegables[cn] || cn === "Clasificador por objeto de gasto (POSPRE)" || cn === "VALIDADOR ¿REQUIERE CPC? (Copia)"){
+                        if(columnasMixtas.includes(cn)){
+                            let dlId = 'list-' + cn.replace(/\s+/g, '');
+                            td.innerHTML = `<input type="text" class="cell-input anexo-input" data-index="${i}" data-col="${cn}" list="${dlId}" value="${v}">`;
+                        } else if(listasDesplegables[cn] || cn === "Clasificador por objeto de gasto (POSPRE)" || cn === "VALIDADOR ¿REQUIERE CPC? (Copia)"){
                             let ln = cn === "Clasificador por objeto de gasto (POSPRE)" ? "Posición Presupuestaría" : (cn === "VALIDADOR ¿REQUIERE CPC? (Copia)" ? "VALIDADOR ¿REQUIERE CPC?" : cn);
                             let opts = listasDesplegables[ln] || [];
                             let found = false;
@@ -642,14 +679,15 @@
         function crearNecesidad(){
             let n = { ID: generateUUID() }; predefinedHeaders.forEach(c => n[c] = "");
             
-            // Asignación de permisos estricta
             let sub = "";
             if (currentRole !== "Invitado" && currentRole !== "Equipo de Contratación") {
-                sub = currentRole; // Asigna directamente el nombre del rol al crear la fila
+                sub = currentRole; 
             }
             n["Subsecretaría"] = sub; 
             
             let fP = document.getElementById('filterProyecto').value;
+            let idNuevo = n.ID;
+            
             if(fP) {
                 n["Proyecto"] = fP;
                 let lastIndex = -1;
@@ -666,12 +704,21 @@
             }
             
             planDeltas.adds.push(n); renderTable(); triggerAutoSave();
+            
+            // Seguimiento a la fila nueva y enfoque visual (Scroll Automático)
+            setTimeout(() => {
+                let filaNueva = document.querySelector(`#viewPlanCompras tr[data-rowid="${idNuevo}"]`);
+                if (filaNueva) {
+                    filaNueva.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    filaNueva.style.backgroundColor = '#fef08a';
+                    setTimeout(() => filaNueva.style.backgroundColor = '', 2000);
+                }
+            }, 100);
         }
         
         function crearFilaAnexo(){
             let n = { ID: generateUUID() }; anexoHeaders.forEach(c => n[c] = "");
             
-            // Asignación de permisos estricta
             let sub = "";
             if (currentRole !== "Invitado" && currentRole !== "Equipo de Contratación") {
                 sub = currentRole;
@@ -680,6 +727,7 @@
             
             let fP = document.getElementById('filterProyectoAnexo').value;
             n["Proyecto"] = fP;
+            let idNuevo = n.ID;
             
             let lastIndex = -1;
             for(let i = 0; i < anexoData.length; i++){
@@ -692,6 +740,16 @@
             else anexoData.push(n);
             
             anexoDeltas.adds.push(n); renderAnexoTable(); triggerAutoSave();
+            
+            // Seguimiento a la fila nueva y enfoque visual (Scroll Automático)
+            setTimeout(() => {
+                let filaNueva = document.querySelector(`#viewAnexoPresupuestal tr[data-rowid="${idNuevo}"]`);
+                if (filaNueva) {
+                    filaNueva.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    filaNueva.style.backgroundColor = '#fef08a';
+                    setTimeout(() => filaNueva.style.backgroundColor = '', 2000);
+                }
+            }, 100);
         }
         
         function eliminarFila(t, i){
