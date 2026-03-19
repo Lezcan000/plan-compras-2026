@@ -50,7 +50,7 @@
         .sort-icon { color: #94a3b8; font-size: 10px; margin-left: 5px; }
         .sort-icon.active { color: var(--primary); font-weight: bold; }
 
-        .cell-input { width: 100%; border: 1px solid transparent; background: transparent; font-family: inherit; font-size: 13px; color: inherit; outline: none; padding: 4px; border-radius: 4px; box-sizing: border-box; }
+        .cell-input { width: 100%; max-width: 100%; border: 1px solid transparent; background: transparent; font-family: inherit; font-size: 13px; color: inherit; outline: none; padding: 4px; border-radius: 4px; box-sizing: border-box; text-overflow: ellipsis; overflow: hidden; }
         .cell-input:hover { border: 1px dashed var(--primary); background: #dbeafe; }
         .cell-input:focus { border: 1px solid var(--primary); background: #fff; }
         select.cell-input { cursor: pointer; }
@@ -328,9 +328,10 @@
                 else if (result.status === 'warning') {
                     hasUnsavedChanges = false;
                     if (currentView === 'Anexo') {
-                        let curPro = String(document.getElementById('filterProyectoAnexo')?.value || "").trim().toLowerCase();
-                        // Filtro seguro por proyecto (insensible a mayúsculas y espacios)
-                        let errs = curPro ? (result.errores || []).filter(e => e.toLowerCase().includes(curPro)) : [];
+                        let curPro = String(document.getElementById('filterProyectoAnexo')?.value || "").trim();
+                        let curProClean = curPro.replace(/\s+/g, '').toLowerCase(); // Filtro seguro que quita todos los espacios
+                        
+                        let errs = curProClean ? (result.errores || []).filter(e => String(e).replace(/\s+/g, '').toLowerCase().includes(curProClean)) : [];
                         
                         if (errs.length > 0) {
                             updateSaveStatus('warning');
@@ -416,12 +417,13 @@
         // ESTILOS DE COLUMNAS (Devuelve propiedades CSS puras en vez de 'style="..."')
         // =========================================================================
         const getColCss = (c) => {
-            if(['Causal', 'Duración del Proyecto'].includes(c)) return 'max-width: 90px; white-space: normal; line-height: 1.3; word-break: break-word;';
-            if(['Indicador Plan de Dllo (Solo producto)'].includes(c)) return 'max-width: 120px; white-space: normal; line-height: 1.3; word-break: break-word;';
-            if(['ESTADO'].includes(c)) return 'min-width: 160px;';
-            if(['Clasificador CPC'].includes(c)) return 'max-width: 160px; white-space: normal; line-height: 1.3; word-break: break-word;';
-            if(['Objeto', 'Observación', 'Actividad detallada', 'ACTIVIDAD MGA', 'ACTIVIDADES DETALLADAS'].includes(c)) return 'max-width: 250px; min-width: 150px; white-space: normal; line-height: 1.3; word-break: break-word;';
-            return '';
+            let col = String(c).toUpperCase();
+            if(['CAUSAL', 'DURACIÓN DEL PROYECTO', 'DURACION DEL PROYECTO'].includes(col)) return 'max-width: 90px; min-width: 80px; white-space: normal; line-height: 1.3; word-break: break-word;';
+            if(col.includes('INDICADOR PLAN DE DLLO')) return 'max-width: 140px; min-width: 110px; white-space: normal; line-height: 1.3; word-break: break-word;';
+            if(['ESTADO'].includes(col)) return 'min-width: 160px;';
+            if(col.includes('CLASIFICADOR CPC')) return 'max-width: 160px; min-width: 130px; white-space: normal; line-height: 1.3; word-break: break-word;';
+            if(['OBJETO', 'OBSERVACIÓN', 'OBSERVACION', 'ACTIVIDAD DETALLADA', 'ACTIVIDAD MGA', 'ACTIVIDADES DETALLADAS'].includes(col)) return 'max-width: 260px; min-width: 160px; white-space: normal; line-height: 1.3; word-break: break-word;';
+            return 'min-width: 120px;';
         };
 
         function renderTable() {
@@ -611,7 +613,8 @@
             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Datos"); 
             
             ws['!cols'] = h.map(c => { 
-                if(['Objeto', 'Actividad detallada', 'ACTIVIDAD MGA', 'ACTIVIDADES DETALLADAS', 'Observación'].includes(c)) return { wch: 50 }; 
+                let col = String(c).toUpperCase();
+                if(['OBJETO', 'ACTIVIDAD DETALLADA', 'ACTIVIDAD MGA', 'ACTIVIDADES DETALLADAS', 'OBSERVACIÓN', 'OBSERVACION'].includes(col)) return { wch: 50 }; 
                 if(columnasMoneda.includes(c)) return { wch: 18 };
                 return { wch: 25 }; 
             });
