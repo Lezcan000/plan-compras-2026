@@ -322,23 +322,20 @@
                 const response = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
                 const result = await response.json();
                 
-                if (result.status === 'success') { 
+                if (result.status === 'success' || result.status === 'warning') { 
                     updateSaveStatus('saved'); hasUnsavedChanges = false; 
-                }
-                else if (result.status === 'warning') {
-                    hasUnsavedChanges = false;
                     
-                    // REVERTIDO: Mostramos la alerta leyendo result.errores directamente desde Google Sheets.
-                    if (currentView === 'Anexo') {
+                    // Restauramos la lectura de los errores detallados por POSPRE desde Google Sheets
+                    if (currentView === 'Anexo' && result.status === 'warning' && result.errores) {
                         let curPro = String(document.getElementById('filterProyectoAnexo')?.value || "").trim();
                         let pClean = curPro.replace(/\s+/g, '').toLowerCase();
                         let numProy = curPro.match(/\d{4,}/g) || []; // Filtro seguro por IDs
                         
-                        let errs = curPro ? (result.errores || []).filter(e => {
+                        let errs = curPro ? result.errores.filter(e => {
                             let eClean = String(e).replace(/\s+/g, '').toLowerCase();
-                            // Verifica coincidencia con el nombre del proyecto
+                            // Verifica coincidencia exacta
                             if (eClean.includes(pClean)) return true;
-                            // Busca el número de proyecto en la alerta del sheet
+                            // Busca el número identificador
                             for (let num of numProy) {
                                 if (eClean.includes(num)) return true;
                             }
@@ -349,8 +346,8 @@
                             updateSaveStatus('warning');
                             document.getElementById('validationErrors').innerText = errs.join("\n");
                             document.getElementById('validationModal').style.display = 'flex';
-                        } else updateSaveStatus('saved');
-                    } else updateSaveStatus('saved');
+                        }
+                    }
                 } else {
                     updateSaveStatus('error');
                 }
