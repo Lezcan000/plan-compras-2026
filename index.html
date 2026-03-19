@@ -220,9 +220,6 @@
             return 'temp-' + Math.random().toString(36).substr(2, 9);
         }
 
-        // =========================================================================
-        // ENCABEZADOS EXACTOS CON NOMBRES NORMALES (SIN DOBLES ESPACIOS)
-        // =========================================================================
         const predefinedHeaders = [
             "Subsecretaría", "Tipo de Bien", "Necesidad", "Estudio Previo", "Objeto", "Modalidad", "Causal", 
             "Mes de Compra", "Duración del Proyecto", "Unidad de Tiempo", "Fecha Inicio Ejecución", "Valor Unitario", 
@@ -290,7 +287,7 @@
                     appData = result.planData || []; anexoData = result.anexoData || []; mapasDependientes = result.mapasDependientes || {};
                     if (result.listas) {
                         for (let key in result.listas) {
-                            let normKey = key.trim().replace(/\s+/g, ' '); // Aseguramos no tener doble espacio
+                            let normKey = key.trim().replace(/\s+/g, ' ');
                             let matched = Object.keys(listasDesplegables).find(k => k.toLowerCase() === normKey.toLowerCase());
                             if (matched) listasDesplegables[matched] = result.listas[key].filter(Boolean);
                             else listasDesplegables[normKey] = result.listas[key].filter(Boolean);
@@ -331,9 +328,9 @@
                 else if (result.status === 'warning') {
                     hasUnsavedChanges = false;
                     if (currentView === 'Anexo') {
-                        let curPro = String(document.getElementById('filterProyectoAnexo')?.value || "").trim();
-                        // Filtro seguro por proyecto
-                        let errs = curPro ? result.errores.filter(e => e.includes(curPro)) : [];
+                        let curPro = String(document.getElementById('filterProyectoAnexo')?.value || "").trim().toLowerCase();
+                        // Filtro seguro por proyecto (insensible a mayúsculas y espacios)
+                        let errs = curPro ? (result.errores || []).filter(e => e.toLowerCase().includes(curPro)) : [];
                         
                         if (errs.length > 0) {
                             updateSaveStatus('warning');
@@ -416,14 +413,14 @@
         function cancelRoleChange(){ document.getElementById('passwordModal').style.display="none"; document.getElementById('roleSelector').value = currentRole; }
 
         // =========================================================================
-        // ESTILOS DE COLUMNAS (MÁS ANGOSTAS Y CON SALTO DE LÍNEA)
+        // ESTILOS DE COLUMNAS (Devuelve propiedades CSS puras en vez de 'style="..."')
         // =========================================================================
-        const getColStyle = (c) => {
-            if(['Causal', 'Duración del Proyecto'].includes(c)) return 'style="max-width: 90px; white-space: normal; line-height: 1.3;"';
-            if(['Indicador Plan de Dllo (Solo producto)'].includes(c)) return 'style="max-width: 120px; white-space: normal; line-height: 1.3;"';
-            if(['ESTADO'].includes(c)) return 'style="min-width: 160px;"';
-            if(['Clasificador CPC'].includes(c)) return 'style="max-width: 160px; white-space: normal; line-height: 1.3;"';
-            if(['Objeto', 'Observación', 'Actividad detallada', 'ACTIVIDAD MGA', 'ACTIVIDADES DETALLADAS'].includes(c)) return 'style="max-width: 250px; min-width: 150px; white-space: normal; line-height: 1.3;"';
+        const getColCss = (c) => {
+            if(['Causal', 'Duración del Proyecto'].includes(c)) return 'max-width: 90px; white-space: normal; line-height: 1.3; word-break: break-word;';
+            if(['Indicador Plan de Dllo (Solo producto)'].includes(c)) return 'max-width: 120px; white-space: normal; line-height: 1.3; word-break: break-word;';
+            if(['ESTADO'].includes(c)) return 'min-width: 160px;';
+            if(['Clasificador CPC'].includes(c)) return 'max-width: 160px; white-space: normal; line-height: 1.3; word-break: break-word;';
+            if(['Objeto', 'Observación', 'Actividad detallada', 'ACTIVIDAD MGA', 'ACTIVIDADES DETALLADAS'].includes(c)) return 'max-width: 250px; min-width: 150px; white-space: normal; line-height: 1.3; word-break: break-word;';
             return '';
         };
 
@@ -432,8 +429,12 @@
             const tbody = document.getElementById('tableBody');
             
             let h = '<tr>'; 
-            predefinedHeaders.forEach(c => h += `<th ${getColStyle(c)}><div class="sort-container" onclick="toggleSort('${c}')">${c} <span class="sort-icon ${sortCol === c ? 'active' : ''}">↕</span></div></th>`);
-            h += '<th>🗑️</th></tr>'; 
+            predefinedHeaders.forEach(c => {
+                let css = getColCss(c);
+                let sAttr = css ? `style="${css}"` : '';
+                h += `<th ${sAttr}><div class="sort-container" onclick="toggleSort('${c}')">${c} <span class="sort-icon ${sortCol === c ? 'active' : ''}">↕</span></div></th>`;
+            });
+            h += '<th style="width: 40px;">🗑️</th></tr>'; 
             document.getElementById('tableHead').innerHTML = h; tbody.innerHTML = '';
             
             let vis = 0, tot = 0; let fP = document.getElementById('filterProyecto').value, fE = document.getElementById('filterEstado').value;
@@ -446,6 +447,11 @@
                 
                 predefinedHeaders.forEach(cn => {
                     let v = r[cn]||''; let td = document.createElement('td'); 
+                    
+                    // Asignamos el estilo directamente a la celda (td) para obligarla a no estirarse
+                    let css = getColCss(cn);
+                    if (css) td.style.cssText = css;
+
                     if(can){
                         if(listasDesplegables[cn] || dependenciasColumna[cn]){
                             let opts = listasDesplegables[cn] || (mapasDependientes[dependenciasColumna[cn]]?.[r.Proyecto] || []);
@@ -480,8 +486,12 @@
             const tbody = document.getElementById('anexoTableBody');
             
             let h = '<tr>'; 
-            anexoHeaders.forEach(c => h += `<th ${getColStyle(c)}><div class="sort-container" onclick="toggleSort('${c}', true)">${c} <span class="sort-icon ${sortCol === c ? 'active' : ''}">↕</span></div></th>`);
-            h += '<th>🗑️</th></tr>'; 
+            anexoHeaders.forEach(c => {
+                let css = getColCss(c);
+                let sAttr = css ? `style="${css}"` : '';
+                h += `<th ${sAttr}><div class="sort-container" onclick="toggleSort('${c}', true)">${c} <span class="sort-icon ${sortCol === c ? 'active' : ''}">↕</span></div></th>`;
+            });
+            h += '<th style="width: 40px;">🗑️</th></tr>'; 
             document.getElementById('anexoTableHead').innerHTML = h; tbody.innerHTML = '';
             
             let tot = 0, fP = document.getElementById('filterProyectoAnexo').value;
@@ -493,6 +503,11 @@
                 
                 anexoHeaders.forEach(cn => {
                     let v = r[cn]||''; let td = document.createElement('td');
+                    
+                    // Asignamos el estilo directamente a la celda (td) para obligarla a no estirarse
+                    let css = getColCss(cn);
+                    if (css) td.style.cssText = css;
+
                     if(can && cn !== "COSTO UNITARIO"){
                         if(listasDesplegables[cn] || cn === "Clasificador por objeto de gasto (POSPRE)" || cn === "VALIDADOR ¿REQUIERE CPC? (Copia)"){
                             let ln = cn === "Clasificador por objeto de gasto (POSPRE)" ? "Posición Presupuestaría" : (cn === "VALIDADOR ¿REQUIERE CPC? (Copia)" ? "VALIDADOR ¿REQUIERE CPC?" : cn);
@@ -537,7 +552,6 @@
                     let i = e.target.dataset.index, c = e.target.dataset.col;
                     let v = e.target.value !== undefined ? e.target.value : e.target.innerText.trim();
                     
-                    // 🔴 Se aplica validación estricta para números (Bug solucionado)
                     if(e.target.classList.contains('curr')){ 
                         v = v.replace(/\D/g, ''); 
                         if(!v) v=0; 
