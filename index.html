@@ -419,7 +419,6 @@
         const rolePasswords = { "Equipo de Contratación": "EquipoContrat", "Subsecretaría de Formación y Participación Ciudadana": "Formacion", "Subsecretaría de Organización Social": "OrgSocial", "Subsecretaria de Planeación Local y PP": "LocalPP26", "Unidad Administrativa": "UnidadAdmin" };
         let currentRole = "Invitado", pendingRole = "";
         
-        // Sincronizar selectores de roles
         document.querySelectorAll('.role-selector').forEach(sel => {
             sel.addEventListener('change', (e) => {
                 if(e.target.value === "Invitado"){ 
@@ -627,7 +626,25 @@
             let n = { ID: generateUUID() }; predefinedHeaders.forEach(c => n[c] = "");
             let rNorm = String(currentRole).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             let sub = rNorm.includes("FORMACION") ? "SUBSEC FORMAC CIUDAD" : rNorm.includes("ORGANIZACION") ? "SUBSEC ORGANIZACION SOCIAL" : rNorm.includes("PLANEACION") ? "SUBSEC PLANEACION LOCAL Y PP" : rNorm.includes("ADMIN") ? "UNIDAD ADMINISTRATIVA" : "";
-            n["Subsecretaría"] = sub; appData.push(n); planDeltas.adds.push(n); renderTable(); triggerAutoSave();
+            n["Subsecretaría"] = sub; 
+            
+            let fP = document.getElementById('filterProyecto').value;
+            if(fP) {
+                n["Proyecto"] = fP;
+                let lastIndex = -1;
+                for(let i = 0; i < appData.length; i++){
+                    if(String(appData[i].Proyecto) === String(fP)) lastIndex = i;
+                }
+                if(!n["Subsecretaría"] && lastIndex !== -1) {
+                    n["Subsecretaría"] = appData[lastIndex]["Subsecretaría"] || "";
+                }
+                if(lastIndex !== -1) appData.splice(lastIndex + 1, 0, n);
+                else appData.push(n);
+            } else {
+                appData.push(n);
+            }
+            
+            planDeltas.adds.push(n); renderTable(); triggerAutoSave();
         }
         
         function crearFilaAnexo(){
@@ -635,7 +652,21 @@
             let rNorm = String(currentRole).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             let sub = rNorm.includes("FORMACION") ? "SUBSEC FORMAC CIUDAD" : rNorm.includes("ORGANIZACION") ? "SUBSEC ORGANIZACION SOCIAL" : rNorm.includes("PLANEACION") ? "SUBSEC PLANEACION LOCAL Y PP" : rNorm.includes("ADMIN") ? "UNIDAD ADMINISTRATIVA" : "";
             n["Subsecretaría"] = sub;
-            n.Proyecto = document.getElementById('filterProyectoAnexo').value; anexoData.push(n); anexoDeltas.adds.push(n); renderAnexoTable(); triggerAutoSave();
+            
+            let fP = document.getElementById('filterProyectoAnexo').value;
+            n["Proyecto"] = fP;
+            
+            let lastIndex = -1;
+            for(let i = 0; i < anexoData.length; i++){
+                if(String(anexoData[i].Proyecto) === String(fP)) lastIndex = i;
+            }
+            if(!n["Subsecretaría"] && lastIndex !== -1) {
+                n["Subsecretaría"] = anexoData[lastIndex]["Subsecretaría"] || "";
+            }
+            if(lastIndex !== -1) anexoData.splice(lastIndex + 1, 0, n);
+            else anexoData.push(n);
+            
+            anexoDeltas.adds.push(n); renderAnexoTable(); triggerAutoSave();
         }
         
         function eliminarFila(t, i){
