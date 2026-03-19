@@ -266,8 +266,14 @@
                         }
                     }
                     updateFilterOptions(); renderTable(); renderAnexoTable(); updateSaveStatus('saved');
+                } else {
+                    updateSaveStatus('error');
+                    console.error("Error backend:", result.message);
                 }
-            } catch (error) { updateSaveStatus('error'); }
+            } catch (error) { 
+                updateSaveStatus('error'); 
+                console.error("Error de conexión:", error);
+            }
         }
 
         function triggerAutoSave() {
@@ -299,6 +305,8 @@
                             document.getElementById('validationModal').style.display = 'flex';
                         } else updateSaveStatus('saved');
                     } else updateSaveStatus('saved');
+                } else {
+                    updateSaveStatus('error');
                 }
             } catch (error) { 
                 updateSaveStatus('error'); 
@@ -310,7 +318,6 @@
         const predefinedHeaders = ["Subsecretaría", "Tipo de Bien", "Necesidad", "Estudio Previo", "Objeto", "Modalidad", "Causal", "Mes de Compra", "Duración del Proyecto", "Unidad de Tiempo", "Fecha Inicio Ejecución", "Valor Unitario", "Proyecto", "Tipo de Recurso", "Posición Presupuestaría", "Fondo", "Observación", "Indicador Plan de Dllo (Solo producto)", "Codigo Actividad  MGA", "Actividad detallada", "Codigo producto MGA", "Codigo CPC", "ESTADO", "CDP", "Contrato Marco", "RP", "Contratista", "Técnico", "Juridico", "Logístico", "Supervisor Principal", "Supervisor Suplente", "Apoyo a la Supervisión Técnico", "Apoyo a la Supervisión Financiero", "Apoyo a la Supervisión Juridico", "Trasladar"];
         const anexoHeaders = ["Subsecretaría", "Proyecto", "CÓDIGO PRODUCTO MGA", "PRODUCTO MGA", "ACTIVIDAD MGA", "ACTIVIDADES DETALLADAS", "UNIDAD DE MEDIDA", "CANTIDAD", "COSTO UNITARIO", "COSTO TOTAL", "Clasificador por objeto de gasto (POSPRE)", "VALIDADOR ¿REQUIERE CPC?", "VALIDADOR ¿REQUIERE CPC?_1", "Clasificador CPC (Aplica solo para POSPRE en \"Adquisición diferentes de activos\": \"Materiales y suministros\" y \"Adquisición de servicios\")", "Validador sección CPC"];
         
-        // 🟢 Reincorporación de listas críticas que se habían omitido por compresión
         const columnasMoneda = ["Valor Unitario", "COSTO UNITARIO", "COSTO TOTAL"];
         const columnasNumericas = ["Duración del Proyecto", "Necesidad", "Estudio Previo", "CDP", "RP", "CANTIDAD"];
         const columnasFecha = ["Fecha Inicio Ejecución"];
@@ -319,13 +326,25 @@
 
         function toYYYYMMDD(v) { 
             if(!v) return ""; 
+            if(typeof v === 'number') {
+                let d = new Date(Math.round((v - 25569) * 86400 * 1000));
+                d = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+                return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+            }
             if(typeof v === 'string' && v.match(/^\d{4}-\d{2}-\d{2}$/)) return v;
             let str = typeof v === 'string' && !v.includes('T') ? v + 'T00:00:00' : v;
             let d = new Date(str); 
-            return isNaN(d.getTime()) ? v : d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+            return isNaN(d.getTime()) ? String(v) : d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
         }
         
-        function toDDMMAAAA(v) { let ymd = toYYYYMMDD(v); if(ymd.includes('-')){ let p=ymd.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; } return v; }
+        function toDDMMAAAA(v) { 
+            let ymd = String(toYYYYMMDD(v)); 
+            if(ymd.includes('-')){ 
+                let p = ymd.split('-'); 
+                return `${p[2]}/${p[1]}/${p[0]}`; 
+            } 
+            return v; 
+        }
 
         function updateFilterOptions() {
             const p1 = new Set(), e1 = new Set();
@@ -348,7 +367,8 @@
             let arr = isAnexo ? anexoData : appData;
             arr.sort((a,b) => {
                 let vA = a[col]||"", vB = b[col]||"";
-                if(columnasMoneda.includes(col)) { vA=Number(vA); vB=Number(vB); }
+                if(columnasMoneda.includes(col) || columnasNumericas.includes(col)) { vA=Number(vA); vB=Number(vB); }
+                else { vA = String(vA).toLowerCase(); vB = String(vB).toLowerCase(); }
                 return sortAsc ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1);
             });
             isAnexo ? renderAnexoTable() : renderTable();
@@ -384,7 +404,8 @@
             h += '<th>🗑️</th></tr>'; document.getElementById('tableHead').innerHTML = h; tbody.innerHTML = '';
             let vis = 0, tot = 0; let fP = document.getElementById('filterProyecto').value, fE = document.getElementById('filterEstado').value;
             appData.forEach((r, i) => {
-                if(fP && r.Proyecto !== fP) return; if(fE && r.ESTADO !== fE) return;
+                if(fP && String(r.Proyecto) !== String(fP)) return; 
+                if(fE && String(r.ESTADO) !== String(fE)) return;
                 vis++; tot += Number(r["Valor Unitario"])||0;
                 let can = checkPermissions(r["Subsecretaría"], currentRole);
                 let tr = document.createElement('tr'); tr.className = can ? 'row-editable' : 'row-locked';
@@ -427,7 +448,8 @@
             h += '<th>🗑️</th></tr>'; document.getElementById('anexoTableHead').innerHTML = h; tbody.innerHTML = '';
             let tot = 0, fP = document.getElementById('filterProyectoAnexo').value;
             anexoData.forEach((r, i) => {
-                if(r.Proyecto !== fP) return; tot += Number(r["COSTO TOTAL"])||0;
+                if(String(r.Proyecto) !== String(fP)) return; 
+                tot += Number(r["COSTO TOTAL"])||0;
                 let can = checkPermissions(r["Subsecretaría"], currentRole);
                 let tr = document.createElement('tr'); tr.className = can ? 'row-editable' : 'row-locked';
                 
@@ -447,7 +469,7 @@
                             td.dataset.col = cn;
                         }
                     } else {
-                        td.innerText = columnasMoneda.includes(cn) && v ? formatMoneda(v) : v;
+                        td.innerText = columnasMoneda.includes(cn) && v !== "" ? formatMoneda(v) : v;
                     }
                     tr.appendChild(td);
                 });
@@ -462,8 +484,8 @@
         function checkPermissions(owner, role) {
             if(role === 'Equipo de Contratación') return true; if(role === 'Invitado') return false;
             if(!owner) return true; 
-            let o = owner.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-            let r = role.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+            let o = String(owner).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+            let r = String(role).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             if(o.includes("FORMAC") && r.includes("FORMACION")) return true;
             if(o.includes("ORGANIZ") && r.includes("ORGANIZ")) return true;
             if(o.includes("PLANEACION") && r.includes("PLANEACION")) return true;
@@ -496,14 +518,14 @@
 
         function crearNecesidad(){
             let n = { ID: generateUUID() }; predefinedHeaders.forEach(c => n[c] = "");
-            let rNorm = currentRole.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+            let rNorm = String(currentRole).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             let sub = rNorm.includes("FORMACION") ? "SUBSEC FORMAC CIUDAD" : rNorm.includes("ORGANIZACION") ? "SUBSEC ORGANIZACION SOCIAL" : rNorm.includes("PLANEACION") ? "SUBSEC PLANEACION LOCAL Y PP" : rNorm.includes("ADMIN") ? "UNIDAD ADMINISTRATIVA" : "";
             n.Subsecretaría = sub; appData.push(n); planDeltas.adds.push(n); renderTable(); triggerAutoSave();
         }
         
         function crearFilaAnexo(){
             let n = { ID: generateUUID() }; anexoHeaders.forEach(c => n[c] = "");
-            let rNorm = currentRole.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+            let rNorm = String(currentRole).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             let sub = rNorm.includes("FORMACION") ? "SUBSEC FORMAC CIUDAD" : rNorm.includes("ORGANIZACION") ? "SUBSEC ORGANIZACION SOCIAL" : rNorm.includes("PLANEACION") ? "SUBSEC PLANEACION LOCAL Y PP" : rNorm.includes("ADMIN") ? "UNIDAD ADMINISTRATIVA" : "";
             n.Subsecretaría = sub;
             n.Proyecto = document.getElementById('filterProyectoAnexo').value; anexoData.push(n); anexoDeltas.adds.push(n); renderAnexoTable(); triggerAutoSave();
@@ -521,7 +543,7 @@
 
         function exportData(t){
             let d = t==='Plan'?appData:anexoData, h = t==='Plan'?predefinedHeaders:anexoHeaders, fn = t==='Plan'?"Plan_2026.xlsx":`Anexo_${document.getElementById('filterProyectoAnexo').value}.xlsx`;
-            if(t==='Anexo') d = d.filter(r => r.Proyecto === document.getElementById('filterProyectoAnexo').value);
+            if(t==='Anexo') d = d.filter(r => String(r.Proyecto) === String(document.getElementById('filterProyectoAnexo').value));
             const ws = XLSX.utils.json_to_sheet(d.map(r => { let x={}; h.forEach(c=>x[c]=r[c]||""); return x; }));
             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Datos"); XLSX.writeFile(wb, fn);
         }
