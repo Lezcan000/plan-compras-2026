@@ -95,8 +95,8 @@
                 <button class="btn btn-success" onclick="exportData('Plan')">💾 Descargar Excel</button>
 
                 <div class="user-simulator">
-                    <label for="roleSelector"><strong>👤 Rol:</strong></label>
-                    <select id="roleSelector">
+                    <label><strong>👤 Rol:</strong></label>
+                    <select class="role-selector" id="roleSelectorPlan">
                         <option value="Invitado">Solo Lectura</option>
                         <option value="Equipo de Contratación">Equipo de Contratación</option>
                         <option value="Subsecretaría de Formación y Participación Ciudadana">Subsec. Formación</option>
@@ -122,7 +122,7 @@
             <table id="dataTable">
                 <thead id="tableHead"></thead>
                 <tbody id="tableBody">
-                    <tr><td colspan="37" style="text-align: center; padding: 40px;">Descargando datos desde la nube...</td></tr>
+                    <tr><td colspan="38" style="text-align: center; padding: 40px;">Descargando datos desde la nube...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -145,6 +145,18 @@
                 <button class="btn btn-info" onclick="cargarDatosDesdeGoogle()">🔄 Recargar</button>
                 <button id="btnCrearFilaAnexo" class="btn btn-warning" onclick="crearFilaAnexo()" style="display: none;">➕ Añadir Fila</button>
                 <button class="btn btn-success" onclick="exportData('Anexo')">💾 Descargar Excel</button>
+
+                <div class="user-simulator">
+                    <label><strong>👤 Rol:</strong></label>
+                    <select class="role-selector" id="roleSelectorAnexo">
+                        <option value="Invitado">Solo Lectura</option>
+                        <option value="Equipo de Contratación">Equipo de Contratación</option>
+                        <option value="Subsecretaría de Formación y Participación Ciudadana">Subsec. Formación</option>
+                        <option value="Subsecretaría de Organización Social">Subsec. Organización</option>
+                        <option value="Subsecretaria de Planeación Local y PP">Subsec. Planeación</option>
+                        <option value="Unidad Administrativa">Unidad Administrativa</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -223,11 +235,10 @@
         const predefinedHeaders = [
             "Subsecretaría", "Tipo de Bien", "Necesidad", "Estudio Previo", "Objeto", "Modalidad", "Causal", 
             "Mes de Compra", "Duración del Proyecto", "Unidad de Tiempo", "Fecha Inicio Ejecución", "Valor Unitario", 
-            "Proyecto", "Tipo de Recurso", "Posición Presupuestaría", "Fondo", "Observación", "Indicador Plan de Dllo (Solo producto)", 
+            "Proyecto", "Trasladar a Proyecto", "Tipo de Recurso", "Posición Presupuestaría", "Trasladar a Pospre", "Fondo", "Observación", "Indicador Plan de Dllo (Solo producto)", 
             "Codigo Actividad MGA", "Actividad detallada", "Codigo producto MGA", "Codigo CPC", "ESTADO", "CDP", 
             "Contrato Marco", "RP", "Contratista", "Técnico", "Jurídico", "Logístico", "Supervisor Principal", 
-            "Supervisor Suplente", "Apoyo a la Supervisión Técnico", "Apoyo a la Supervisión Financiero", "Apoyo a la Supervisión Jurídico", 
-            "Trasladar"
+            "Supervisor Suplente", "Apoyo a la Supervisión Técnico", "Apoyo a la Supervisión Financiero", "Apoyo a la Supervisión Jurídico"
         ];
         
         const anexoHeaders = [
@@ -325,17 +336,14 @@
                 if (result.status === 'success' || result.status === 'warning') { 
                     updateSaveStatus('saved'); hasUnsavedChanges = false; 
                     
-                    // Restauramos la lectura de los errores detallados por POSPRE desde Google Sheets
                     if (currentView === 'Anexo' && result.status === 'warning' && result.errores) {
                         let curPro = String(document.getElementById('filterProyectoAnexo')?.value || "").trim();
                         let pClean = curPro.replace(/\s+/g, '').toLowerCase();
-                        let numProy = curPro.match(/\d{4,}/g) || []; // Filtro seguro por IDs
+                        let numProy = curPro.match(/\d{4,}/g) || []; 
                         
                         let errs = curPro ? result.errores.filter(e => {
                             let eClean = String(e).replace(/\s+/g, '').toLowerCase();
-                            // Verifica coincidencia exacta
                             if (eClean.includes(pClean)) return true;
-                            // Busca el número identificador
                             for (let num of numProy) {
                                 if (eClean.includes(num)) return true;
                             }
@@ -410,24 +418,45 @@
 
         const rolePasswords = { "Equipo de Contratación": "EquipoContrat", "Subsecretaría de Formación y Participación Ciudadana": "Formacion", "Subsecretaría de Organización Social": "OrgSocial", "Subsecretaria de Planeación Local y PP": "LocalPP26", "Unidad Administrativa": "UnidadAdmin" };
         let currentRole = "Invitado", pendingRole = "";
-        document.getElementById('roleSelector').addEventListener('change', (e) => {
-            if(e.target.value === "Invitado"){ currentRole="Invitado"; renderTable(); renderAnexoTable(); return; }
-            pendingRole = e.target.value; document.getElementById('modalRoleName').innerText = pendingRole;
-            document.getElementById('passwordInput').value = ""; document.getElementById('passwordModal').style.display = "flex";
+        
+        // Sincronizar selectores de roles
+        document.querySelectorAll('.role-selector').forEach(sel => {
+            sel.addEventListener('change', (e) => {
+                if(e.target.value === "Invitado"){ 
+                    currentRole="Invitado"; 
+                    document.querySelectorAll('.role-selector').forEach(s => s.value = currentRole);
+                    renderTable(); 
+                    renderAnexoTable(); 
+                    return; 
+                }
+                pendingRole = e.target.value; 
+                document.getElementById('modalRoleName').innerText = pendingRole;
+                document.getElementById('passwordInput').value = ""; 
+                document.getElementById('passwordModal').style.display = "flex";
+            });
         });
+
         function verifyPassword(){
             if(document.getElementById('passwordInput').value === rolePasswords[pendingRole]){
-                currentRole = pendingRole; document.getElementById('passwordModal').style.display="none"; renderTable(); renderAnexoTable();
+                currentRole = pendingRole; 
+                document.getElementById('passwordModal').style.display="none"; 
+                document.querySelectorAll('.role-selector').forEach(s => s.value = currentRole);
+                renderTable(); 
+                renderAnexoTable();
             } else { document.getElementById('errorMsg').style.display="block"; }
         }
-        function cancelRoleChange(){ document.getElementById('passwordModal').style.display="none"; document.getElementById('roleSelector').value = currentRole; }
+
+        function cancelRoleChange(){ 
+            document.getElementById('passwordModal').style.display="none"; 
+            document.querySelectorAll('.role-selector').forEach(s => s.value = currentRole);
+        }
 
         const getColCss = (c) => {
             let col = String(c).toUpperCase();
             if(['CAUSAL', 'DURACIÓN DEL PROYECTO'].includes(col)) return 'width: 90px; min-width: 90px; max-width: 90px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
             if(col.includes('INDICADOR PLAN DE DLLO')) return 'width: 140px; min-width: 140px; max-width: 140px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
             if(['ESTADO'].includes(col)) return 'width: 160px; min-width: 160px; max-width: 160px;';
-            if(col.includes('CLASIFICADOR CPC')) return 'width: 160px; min-width: 160px; max-width: 160px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
+            if(col.includes('CLASIFICADOR CPC') || ['TRASLADAR A PROYECTO', 'TRASLADAR A POSPRE'].includes(col)) return 'width: 160px; min-width: 160px; max-width: 160px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
             if(['OBJETO', 'OBSERVACIÓN', 'ACTIVIDAD DETALLADA', 'ACTIVIDAD MGA', 'ACTIVIDADES DETALLADAS'].includes(col)) return 'width: 280px; min-width: 280px; max-width: 280px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
             return 'min-width: 120px;';
         };
@@ -538,7 +567,6 @@
                 tr.appendChild(delTd); tbody.appendChild(tr);
             });
             
-            // Calculo de diferencia visual rápida en barra superior
             let totPlan = 0;
             appData.forEach(r => { if(String(r.Proyecto) === String(fP)) totPlan += Number(r["Valor Unitario"])||0; });
             let diff = Math.abs(totPlan - totAnex);
@@ -633,6 +661,31 @@
                 if(columnasMoneda.includes(c)) return { wch: 18 };
                 return { wch: 25 }; 
             });
+
+            // Aplicar formato avanzado a Excel
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    let cell_ref = XLSX.utils.encode_cell({ c: C, r: R });
+                    if (!ws[cell_ref]) continue;
+                    if (!ws[cell_ref].s) ws[cell_ref].s = {};
+                    
+                    ws[cell_ref].s.border = {
+                        top: { style: "thin", color: { rgb: "000000" } },
+                        bottom: { style: "thin", color: { rgb: "000000" } },
+                        left: { style: "thin", color: { rgb: "000000" } },
+                        right: { style: "thin", color: { rgb: "000000" } }
+                    };
+
+                    if (R === 0) {
+                        ws[cell_ref].s.fill = { patternType: "solid", fgColor: { rgb: "1D4ED8" } };
+                        ws[cell_ref].s.font = { bold: true, color: { rgb: "FFFFFF" } };
+                        ws[cell_ref].s.alignment = { horizontal: "center", vertical: "center" };
+                    } else if (columnasMoneda.includes(h[C]) && ws[cell_ref].t === 'n') {
+                        ws[cell_ref].z = '"$"#,##0';
+                    }
+                }
+            }
 
             XLSX.writeFile(wb, fn);
         }
