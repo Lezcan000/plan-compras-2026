@@ -250,7 +250,7 @@
         const columnasMoneda = ["Valor Unitario", "COSTO UNITARIO", "COSTO TOTAL"];
         const columnasNumericas = ["Duración del Proyecto", "Necesidad", "Estudio Previo", "CDP", "RP", "CANTIDAD"];
         const columnasFecha = ["Fecha Inicio Ejecución"];
-        const columnasMixtas = ["CDP", "RP", "Contrato Marco", "Contratista"]; // ComboBoxes: Permiten lista o escritura libre
+        const columnasMixtas = ["CDP", "RP", "Contrato Marco", "Contratista"]; // ComboBoxes (permiten lista y texto libre)
         
         const dependenciasColumna = {
             "Codigo Actividad MGA": "ActividadMGA", 
@@ -318,7 +318,7 @@
                         }
                     }
                     
-                    // Construir Datalists para columnas mixtas (ComboBoxes)
+                    // Construir Datalists para columnas mixtas (ComboBoxes libres)
                     const datalistsDiv = document.getElementById('datalists') || document.createElement('div');
                     datalistsDiv.id = 'datalists';
                     datalistsDiv.innerHTML = '';
@@ -654,6 +654,9 @@
                         v = v.replace(/\D/g, ''); 
                         if(!v) v=0; 
                     } else if (columnasNumericas.includes(c)) {
+                        // En ComboBoxes mixtos, si tiene letras queremos conservarlas, 
+                        // pero si están en "columnasNumericas" forzamos número.
+                        // Solo dejamos números limpios si realmente es para cálculo.
                         v = String(v).replace(/\D/g, '');
                         v = v !== '' ? Number(v) : 0;
                     }
@@ -705,15 +708,16 @@
             
             planDeltas.adds.push(n); renderTable(); triggerAutoSave();
             
-            // Seguimiento a la fila nueva y enfoque visual (Scroll Automático)
+            // Seguimiento a la fila nueva y enfoque visual
             setTimeout(() => {
                 let filaNueva = document.querySelector(`#viewPlanCompras tr[data-rowid="${idNuevo}"]`);
                 if (filaNueva) {
                     filaNueva.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    filaNueva.style.transition = 'background-color 0.5s';
                     filaNueva.style.backgroundColor = '#fef08a';
-                    setTimeout(() => filaNueva.style.backgroundColor = '', 2000);
+                    setTimeout(() => { filaNueva.style.backgroundColor = ''; }, 2000);
                 }
-            }, 100);
+            }, 300); // Aumentado a 300ms para asegurar que la tabla termine de dibujarse
         }
         
         function crearFilaAnexo(){
@@ -741,15 +745,16 @@
             
             anexoDeltas.adds.push(n); renderAnexoTable(); triggerAutoSave();
             
-            // Seguimiento a la fila nueva y enfoque visual (Scroll Automático)
+            // Seguimiento a la fila nueva y enfoque visual
             setTimeout(() => {
                 let filaNueva = document.querySelector(`#viewAnexoPresupuestal tr[data-rowid="${idNuevo}"]`);
                 if (filaNueva) {
                     filaNueva.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    filaNueva.style.transition = 'background-color 0.5s';
                     filaNueva.style.backgroundColor = '#fef08a';
-                    setTimeout(() => filaNueva.style.backgroundColor = '', 2000);
+                    setTimeout(() => { filaNueva.style.backgroundColor = ''; }, 2000);
                 }
-            }, 100);
+            }, 300); // Aumentado a 300ms para asegurar que la tabla termine de dibujarse
         }
         
         function eliminarFila(t, i){
