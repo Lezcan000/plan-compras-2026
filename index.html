@@ -72,6 +72,9 @@
         
         .btn-delete { background-color: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 0.2s; }
         .btn-delete:hover { background-color: #dc2626; }
+        
+        /* Estilo para la notificación de Deshacer */
+        #toast { display: none; position: fixed; bottom: 20px; right: 20px; background: #1e293b; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 1000; font-size: 14px; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -81,10 +84,10 @@
             <div>
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <h2 style="margin: 0; color: #0f172a;">Plan de Compras 2026</h2>
-                    <span id="saveStatus1" class="status-badge status-loading">⏳ Conectando...</span>
+                    <span id="saveStatus1" class="status-badge status-loading">⏳ Sincronizando...</span>
                 </div>
                 <div id="summaryBar" style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">
-                    Sincronizando con Google Sheets...
+                    Sincronizando...
                 </div>
             </div>
             
@@ -133,10 +136,10 @@
             <div>
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <h2 style="margin: 0; color: #0f172a;">Anexo Presupuestal</h2>
-                    <span id="saveStatus2" class="status-badge status-loading">⏳ Conectando...</span>
+                    <span id="saveStatus2" class="status-badge status-loading">⏳ Sincronizando...</span>
                 </div>
                 <div id="summaryBarAnexo" style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">
-                    Sincronizando con Google Sheets...
+                    Sincronizando...
                 </div>
             </div>
             
@@ -179,7 +182,7 @@
         </div>
     </div>
 
-    <!-- Modales -->
+    <!-- Modales y Alertas -->
     <div class="modal-overlay" id="msgModal">
         <div class="modal" style="width: 400px; text-align: center;">
             <h3 id="msgModalTitle" style="margin-top: 0; color: var(--text-main);">Alerta</h3>
@@ -213,6 +216,8 @@
             </div>
         </div>
     </div>
+    
+    <div id="toast">✅ Deshecho</div>
 
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzgyHwr-Zwrm8iinhx-NZk9Jk88GfAxOZk4gSRqgO34R7Yk2kHrY-K_hExIT5WMRZ0/exec";
@@ -224,6 +229,7 @@
         let anexoData = [];
         let planDeltas = { adds: [], updates: [], deletes: [] };
         let anexoDeltas = { adds: [], updates: [], deletes: [] };
+        let historyStack = []; // Memoria para el Control + Z
 
         window.addEventListener('beforeunload', function (e) {
             if (hasUnsavedChanges || saveTimeoutId) {
@@ -254,7 +260,7 @@
         const columnasMoneda = ["Valor Unitario", "COSTO UNITARIO", "COSTO TOTAL"];
         const columnasNumericas = ["Duración del Proyecto", "Necesidad", "Estudio Previo", "CDP", "RP", "CANTIDAD"];
         const columnasFecha = ["Fecha Inicio Ejecución"];
-        const columnasMixtas = ["CDP", "RP", "Contrato Marco", "Contratista"]; // ComboBoxes (permiten lista y texto libre)
+        const columnasMixtas = ["CDP", "RP", "Contrato Marco", "Contratista"]; 
         
         const dependenciasColumna = {
             "Codigo Actividad MGA": "ActividadMGA", 
@@ -274,6 +280,7 @@
             "Unidad de Tiempo": ["D", "M", "A"], 
             "Tipo de Bien": ["Misional", "Generico", "Servicio", "Obra"],
             "Modalidad": ["Contratación Directa", "Licitación Pública", "Mínima Cuantía", "Concurso de Méritos", "Selección Abreviada", "Subasta Inversa"],
+            "Causal": [], // Causal agregada a listas
             "VALIDADOR ¿REQUIERE CPC?": ["SI", "NO"], 
             "Proyecto": [], 
             "Posición Presupuestaría": [],
@@ -322,7 +329,6 @@
                         }
                     }
                     
-                    // Construir Datalists para columnas mixtas (ComboBoxes libres)
                     const datalistsDiv = document.getElementById('datalists') || document.createElement('div');
                     datalistsDiv.id = 'datalists';
                     datalistsDiv.innerHTML = '';
@@ -563,6 +569,10 @@
                             td.innerHTML = `<select class="cell-input plan-input" data-index="${i}" data-col="${cn}">${optionsHTML}</select>`;
                         } else if(columnasMoneda.includes(cn)) {
                             td.innerHTML = `<input type="text" class="cell-input curr plan-input" data-index="${i}" data-col="${cn}" value="${v?formatMoneda(v):''}">`;
+                        } else if(columnasFecha.includes(cn)) {
+                            // Implementación de fecha (Calendario)
+                            let dateVal = v ? toYYYYMMDD(v) : '';
+                            td.innerHTML = `<input type="date" class="cell-input plan-input" data-index="${i}" data-col="${cn}" value="${dateVal}">`;
                         } else {
                             td.innerText = v;
                             td.contentEditable = true; 
@@ -636,6 +646,9 @@
                             td.innerHTML = `<select class="cell-input anexo-input" data-index="${i}" data-col="${cn}">${optionsHTML}</select>`;
                         } else if(columnasMoneda.includes(cn)) {
                             td.innerHTML = `<input type="text" class="cell-input curr anexo-input" data-index="${i}" data-col="${cn}" value="${v?formatMoneda(v):''}">`;
+                        } else if(columnasFecha.includes(cn)) {
+                            let dateVal = v ? toYYYYMMDD(v) : '';
+                            td.innerHTML = `<input type="date" class="cell-input anexo-input" data-index="${i}" data-col="${cn}" value="${dateVal}">`;
                         } else {
                             td.innerText = v;
                             td.contentEditable = true; 
@@ -665,9 +678,77 @@
             attachListeners('anexo-input', anexoData, renderAnexoTable);
         }
 
+        // Lógica de Notificaciones Deshacer
+        let toastTimeout;
+        function mostrarNotificacion(msg) {
+            let toast = document.getElementById('toast');
+            if(toast) {
+                toast.innerText = msg;
+                toast.style.display = 'block';
+                clearTimeout(toastTimeout);
+                toastTimeout = setTimeout(() => toast.style.display = 'none', 3000);
+            }
+        }
+
+        // Captura de Ctrl+Z o Cmd+Z
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                // Permitir Ctrl+Z nativo si está activamente tecleando en una celda
+                let isInputActive = document.activeElement && 
+                    (document.activeElement.tagName === 'INPUT' || 
+                     document.activeElement.tagName === 'SELECT' || 
+                     document.activeElement.isContentEditable);
+                     
+                if (isInputActive) {
+                    return; 
+                }
+                
+                e.preventDefault();
+                ejecutarDeshacer();
+            }
+        });
+
+        function ejecutarDeshacer() {
+            if (historyStack.length === 0) {
+                mostrarNotificacion("No hay cambios guardados para deshacer.");
+                return;
+            }
+            
+            let lastChange = historyStack.pop();
+            let dataArr = lastChange.isAnexo ? anexoData : appData;
+            
+            let rowIndex = dataArr.findIndex(r => r.ID === lastChange.id);
+            if (rowIndex !== -1) {
+                let id = lastChange.id;
+                let c = lastChange.col;
+                let restoredVal = lastChange.oldVal;
+                
+                dataArr[rowIndex][c] = restoredVal;
+                
+                let del = lastChange.isAnexo ? anexoDeltas : planDeltas;
+                if(!del.adds.find(r=>r.ID===id)){
+                    let u = del.updates.find(x=>x.id===id && x.field===c);
+                    if(u) u.value = restoredVal; else del.updates.push({id, field:c, value:restoredVal});
+                }
+                
+                if(lastChange.isAnexo && (c === "CANTIDAD" || c === "COSTO TOTAL")){
+                    let q = Number(dataArr[rowIndex]["CANTIDAD"])||0, t = Number(dataArr[rowIndex]["COSTO TOTAL"])||0;
+                    dataArr[rowIndex]["COSTO UNITARIO"] = q > 0 ? t / q : 0;
+                }
+                
+                mostrarNotificacion("✅ Deshecho: Se restauró la columna '" + c + "'");
+                
+                lastChange.isAnexo ? renderAnexoTable() : renderTable();
+                triggerAutoSave();
+            }
+        }
+
         function attachListeners(cls, data, func) {
             document.querySelectorAll('.'+cls).forEach(el => {
-                el.addEventListener(el.tagName==='SELECT'?'change':'blur', (e) => {
+                // Validar si es select, fecha o texto para usar el evento correcto
+                let evtType = (el.tagName === 'SELECT' || el.type === 'date') ? 'change' : 'blur';
+                
+                el.addEventListener(evtType, (e) => {
                     let i = e.target.dataset.index, c = e.target.dataset.col;
                     let v = e.target.value !== undefined ? e.target.value : e.target.innerText.trim();
                     
@@ -675,16 +756,27 @@
                         v = v.replace(/\D/g, ''); 
                         if(!v) v=0; 
                     } else if (columnasNumericas.includes(c)) {
-                        // En ComboBoxes mixtos, si tiene letras queremos conservarlas, 
-                        // pero si están en "columnasNumericas" forzamos número.
-                        // Solo dejamos números limpios si realmente es para cálculo.
                         v = String(v).replace(/\D/g, '');
                         v = v !== '' ? Number(v) : 0;
                     }
                     
                     if(!isNaN(v) && v !== "") v = Number(v);
                     
-                    if(data[i][c] !== v){
+                    let oldVal = data[i][c];
+                    if (oldVal === undefined) oldVal = "";
+                    
+                    if(oldVal !== v){
+                        // Guardar en la memoria de Deshacer
+                        historyStack.push({
+                            isAnexo: data === anexoData,
+                            id: data[i].ID,
+                            index: i,
+                            col: c,
+                            oldVal: oldVal,
+                            newVal: v
+                        });
+                        if (historyStack.length > 30) historyStack.shift(); // Limita la memoria a 30 cambios
+                        
                         data[i][c] = v; let id = data[i].ID; let del = data === appData ? planDeltas : anexoDeltas;
                         if(!del.adds.find(r=>r.ID===id)){
                             let u = del.updates.find(x=>x.id===id && x.field===c);
@@ -729,7 +821,6 @@
             
             planDeltas.adds.push(n); renderTable(); triggerAutoSave();
             
-            // Seguimiento a la fila nueva y enfoque visual
             setTimeout(() => {
                 let filaNueva = document.querySelector(`#viewPlanCompras tr[data-rowid="${idNuevo}"]`);
                 if (filaNueva) {
@@ -738,7 +829,7 @@
                     filaNueva.style.backgroundColor = '#fef08a';
                     setTimeout(() => { filaNueva.style.backgroundColor = ''; }, 2000);
                 }
-            }, 300); // Aumentado a 300ms para asegurar que la tabla termine de dibujarse
+            }, 300);
         }
         
         function crearFilaAnexo(){
@@ -766,7 +857,6 @@
             
             anexoDeltas.adds.push(n); renderAnexoTable(); triggerAutoSave();
             
-            // Seguimiento a la fila nueva y enfoque visual
             setTimeout(() => {
                 let filaNueva = document.querySelector(`#viewAnexoPresupuestal tr[data-rowid="${idNuevo}"]`);
                 if (filaNueva) {
@@ -775,7 +865,7 @@
                     filaNueva.style.backgroundColor = '#fef08a';
                     setTimeout(() => { filaNueva.style.backgroundColor = ''; }, 2000);
                 }
-            }, 300); // Aumentado a 300ms para asegurar que la tabla termine de dibujarse
+            }, 300);
         }
         
         function eliminarFila(t, i){
@@ -815,7 +905,6 @@
                 return { wch: 25 }; 
             });
 
-            // Aplicar formato avanzado a Excel
             const range = XLSX.utils.decode_range(ws['!ref']);
             for (let R = range.s.r; R <= range.e.r; ++R) {
                 for (let C = range.s.c; C <= range.e.c; ++C) {
