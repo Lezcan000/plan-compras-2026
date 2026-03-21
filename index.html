@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- NUEVO: Bloqueo de caché para que los usuarios siempre vean los cambios recientes -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Plan de Compras - Interfaz Colaborativa</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     
@@ -258,7 +262,8 @@
         ];
         
         const columnasMoneda = ["Valor Unitario", "COSTO UNITARIO", "COSTO TOTAL"];
-        const columnasNumericas = ["Duración del Proyecto", "Necesidad", "Estudio Previo", "CDP", "RP", "CANTIDAD"];
+        // CORRECCIÓN: Se eliminaron "Necesidad" y "Estudio Previo" para que sean alfanuméricos libres
+        const columnasNumericas = ["Duración del Proyecto", "CDP", "RP", "CANTIDAD"];
         const columnasFecha = ["Fecha Inicio Ejecución"];
         const columnasMixtas = ["CDP", "RP", "Contrato Marco", "Contratista"]; 
         
@@ -315,7 +320,8 @@
         async function cargarDatosDesdeGoogle() {
             updateSaveStatus('loading');
             try {
-                const response = await fetch(WEB_APP_URL);
+                // NUEVO: Se le agrega una marca de tiempo temporal a la URL para forzar al navegador a descargar datos nuevos
+                const response = await fetch(WEB_APP_URL + "?t=" + new Date().getTime());
                 const result = await response.json();
                 if (result.status === 'success') {
                     planDeltas = { adds: [], updates: [], deletes: [] }; anexoDeltas = { adds: [], updates: [], deletes: [] };
@@ -745,19 +751,31 @@
 
         function attachListeners(cls, data, func) {
             document.querySelectorAll('.'+cls).forEach(el => {
-                // Validar si es select, fecha o texto para usar el evento correcto
                 let evtType = (el.tagName === 'SELECT' || el.type === 'date') ? 'change' : 'blur';
                 
                 el.addEventListener(evtType, (e) => {
                     let i = e.target.dataset.index, c = e.target.dataset.col;
                     let v = e.target.value !== undefined ? e.target.value : e.target.innerText.trim();
                     
+                    let originalV = v;
+                    let isNumeric = false;
+                    
                     if(e.target.classList.contains('curr')){ 
+                        isNumeric = true;
                         v = v.replace(/\D/g, ''); 
                         if(!v) v=0; 
                     } else if (columnasNumericas.includes(c)) {
+                        isNumeric = true;
                         v = String(v).replace(/\D/g, '');
                         v = v !== '' ? Number(v) : 0;
+                    }
+                    
+                    // ALERTA: Si es un campo numérico y el usuario escribió letras
+                    let hasLetters = /[a-zA-Z]/.test(originalV);
+                    if (isNumeric && hasLetters) {
+                        document.getElementById('msgModalTitle').innerText = '⚠️ Dato Numérico Requerido';
+                        document.getElementById('msgModalBody').innerText = `La columna "${c}" solo acepta números.\n\nLas letras que escribiste ("${originalV}") han sido eliminadas automáticamente.`;
+                        document.getElementById('msgModal').style.display = 'flex';
                     }
                     
                     if(!isNaN(v) && v !== "") v = Number(v);
@@ -775,7 +793,7 @@
                             oldVal: oldVal,
                             newVal: v
                         });
-                        if (historyStack.length > 30) historyStack.shift(); // Limita la memoria a 30 cambios
+                        if (historyStack.length > 30) historyStack.shift(); 
                         
                         data[i][c] = v; let id = data[i].ID; let del = data === appData ? planDeltas : anexoDeltas;
                         if(!del.adds.find(r=>r.ID===id)){
@@ -787,6 +805,10 @@
                             data[i]["COSTO UNITARIO"] = q > 0 ? t / q : 0;
                         }
                         func(); triggerAutoSave();
+                    } else if (isNumeric && hasLetters) {
+                        // Si era un número, le agregaron letras, pero el número final es el mismo (ej. era 0 -> escriben "A" -> se vuelve 0)
+                        // Forzamos que la tabla se recargue para limpiar visualmente las letras de la celda.
+                        func();
                     }
                 });
             });
