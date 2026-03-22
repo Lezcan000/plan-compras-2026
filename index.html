@@ -11,21 +11,10 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     
     <style>
-        /* NUEVA PALETA DE COLORES MÁS LIMPIA Y AMIGABLE */
         :root {
-            --primary: #0284c7; /* Azul corporativo más suave */
-            --primary-hover: #0369a1; 
-            --surface: #ffffff; /* Blanco puro para contenedores */
-            --background: #f8fafc; /* Gris/azul super claro para el fondo exterior */
-            --text-main: #334155; /* Texto oscuro pero no negro (menos fatiga) */
-            --text-muted: #64748b; 
-            --border: #e2e8f0; /* Bordes mucho más suaves */
-            --locked-bg: #ffffff; /* Filas bloqueadas en blanco puro */
-            --editable-bg: #f0f9ff; /* Azul pastel ultra suave para editables */
-            --success: #10b981; 
-            --warning: #f59e0b; 
-            --danger: #ef4444; 
-            --info: #0ea5e9;
+            --primary: #2563eb; --primary-hover: #1d4ed8; --surface: #ffffff; --background: #f1f5f9;
+            --text-main: #0f172a; --text-muted: #64748b; --border: #cbd5e1; --locked-bg: #f8fafc;
+            --editable-bg: #eff6ff; --success: #16a34a; --warning: #f59e0b; --danger: #dc2626; --info: #0ea5e9;
         }
 
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background); color: var(--text-main); margin: 0; padding: 20px; }
@@ -237,8 +226,8 @@
 
     <div class="modal-overlay" id="validationModal">
         <div class="modal modal-large">
-            <h3 id="validationTitle">⚠️ Diferencias en POSPRE detectadas</h3>
-            <p style="font-size: 14px; color: var(--text-muted);">Cálculo en tiempo real comparando Plan de Compras vs Anexo Presupuestal:</p>
+            <h3 id="validationTitle">⚠️ Diferencias encontradas</h3>
+            <p id="validationDesc" style="font-size: 14px; color: var(--text-muted);">Cálculo en tiempo real comparando Plan de Compras vs Anexo Presupuestal:</p>
             <pre id="validationErrors"></pre>
             <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
                 <button class="btn btn-primary" onclick="document.getElementById('validationModal').style.display='none'">Cerrar</button>
@@ -280,7 +269,6 @@
             "Supervisor Suplente", "Apoyo a la Supervisión Técnico", "Apoyo a la Supervisión Financiero", "Apoyo a la Supervisión Jurídico"
         ];
         
-        // ELIMINADA la columna "VALIDADOR ¿REQUIERE CPC? (Copia)" del Anexo
         const anexoHeaders = [
             "Subsecretaría", "Proyecto", "CÓDIGO PRODUCTO MGA", "PRODUCTO MGA", "ACTIVIDAD MGA", "ACTIVIDADES DETALLADAS", 
             "UNIDAD DE MEDIDA", "CANTIDAD", "COSTO UNITARIO", "COSTO TOTAL", "Clasificador por objeto de gasto (POSPRE)", 
@@ -407,7 +395,6 @@
                 
                 if (result.status === 'success' || result.status === 'warning') { 
                     updateSaveStatus('saved'); hasUnsavedChanges = false; 
-                    // SE ELIMINÓ LA LÓGICA AUTOMÁTICA DE ALERTAS AQUÍ PARA HACERLA MANUAL
                 } else {
                     updateSaveStatus('error');
                 }
@@ -429,30 +416,30 @@
             }
             
             let titleEl = document.getElementById('validationTitle');
-            titleEl.innerText = "⏳ Consultando Tabla Dinámica...";
+            titleEl.innerText = "⏳ Consultando...";
             titleEl.style.color = "var(--warning)";
-            document.getElementById('validationErrors').innerText = "Conectando con Google Sheets para leer la tabla dinámica en tiempo real...";
+            document.getElementById('validationErrors').innerText = "Conectando con Google Sheets en tiempo real...";
             document.getElementById('validationModal').style.display = 'flex';
 
             try {
-                // Hacemos la consulta directamente a Google Sheets buscando la Tabla Dinámica
+                // Hacemos la consulta directamente a Google Sheets buscando los datos
                 const response = await fetch(WEB_APP_URL + "?action=getDiferencias&proyecto=" + encodeURIComponent(curPro));
                 const result = await response.json();
 
                 if (result.status === 'success' || result.status === 'warning') {
                     if (result.errores && result.errores.length > 0) {
-                        titleEl.innerText = "⚠️ Diferencias encontradas en la TD";
+                        titleEl.innerText = "⚠️ Diferencias encontradas";
                         titleEl.style.color = "var(--danger)";
                         document.getElementById('validationErrors').innerText = result.errores.join("\n");
                     } else {
                         titleEl.innerText = "✅ Todo cuadra perfectamente";
                         titleEl.style.color = "var(--success)";
-                        document.getElementById('validationErrors').innerText = "No se encontraron diferencias matemáticas en la tabla dinámica para este proyecto.";
+                        document.getElementById('validationErrors').innerText = "No se encontraron diferencias matemáticas para este proyecto.";
                     }
                 } else {
                     titleEl.innerText = "❌ Error en consulta";
                     titleEl.style.color = "var(--danger)";
-                    document.getElementById('validationErrors').innerText = result.message || "Error al leer la tabla dinámica.";
+                    document.getElementById('validationErrors').innerText = result.message || "Error al leer los datos.";
                 }
             } catch (error) {
                 titleEl.innerText = "❌ Error de conexión";
@@ -613,7 +600,7 @@
                         } else if(listasDesplegables[cn] || dependenciasColumna[cn]){
                             let opts = listasDesplegables[cn] || (mapasDependientes[dependenciasColumna[cn]]?.[r.Proyecto] || []);
                             let found = false;
-                            // CAMBIO: Valor por defecto de las listas está ahora completamente vacío
+                            // Valor por defecto vacío
                             let optionsHTML = `<option value=""></option>`;
                             opts.forEach(o => {
                                 let isSelected = String(v).trim() === String(o).trim();
@@ -690,7 +677,7 @@
                             let ln = cn === "Clasificador por objeto de gasto (POSPRE)" ? "Posición Presupuestaría" : cn;
                             let opts = listasDesplegables[ln] || [];
                             let found = false;
-                            // CAMBIO: Valor por defecto de las listas está ahora completamente vacío
+                            // Valor por defecto vacío
                             let optionsHTML = `<option value=""></option>`;
                             opts.forEach(o => {
                                 let isSelected = String(v).trim() === String(o).trim();
