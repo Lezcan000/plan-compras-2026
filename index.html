@@ -419,7 +419,7 @@
         }
 
         // LÓGICA PARA BOTÓN MANUAL DE DIFERENCIAS MATEMÁTICAS INSTANTÁNEAS
-        function verDiferencias() {
+        async function verDiferencias() {
             let curPro = document.getElementById('filterProyectoAnexo').value;
             if(!curPro) {
                 document.getElementById('msgModalTitle').innerText = 'Alerta';
@@ -428,47 +428,37 @@
                 return;
             }
             
-            // Sumar todo en el Plan
-            let posprePlan = {};
-            appData.forEach(r => {
-                if(String(r.Proyecto) === String(curPro)) {
-                    let p = String(r["Posición Presupuestaría"] || "SIN POSPRE").trim();
-                    posprePlan[p] = (posprePlan[p] || 0) + (Number(r["Valor Unitario"]) || 0);
-                }
-            });
-            
-            // Sumar todo en el Anexo
-            let pospreAnexo = {};
-            anexoData.forEach(r => {
-                if(String(r.Proyecto) === String(curPro)) {
-                    let p = String(r["Clasificador por objeto de gasto (POSPRE)"] || "SIN POSPRE").trim();
-                    pospreAnexo[p] = (pospreAnexo[p] || 0) + (Number(r["COSTO TOTAL"]) || 0);
-                }
-            });
-            
-            let allPospres = new Set([...Object.keys(posprePlan), ...Object.keys(pospreAnexo)]);
-            let errs = [];
-            
-            allPospres.forEach(p => {
-                let vPlan = posprePlan[p] || 0;
-                let vAnexo = pospreAnexo[p] || 0;
-                let diff = Math.abs(vPlan - vAnexo);
-                if(diff > 1) { // Tolerancia de decimales
-                    errs.push(`📌 POSPRE: ${p}\n   Plan: ${formatMoneda(vPlan)}  |  Anexo: ${formatMoneda(vAnexo)}\n   Diferencia: ${formatMoneda(diff)}\n`);
-                }
-            });
-            
             let titleEl = document.getElementById('validationTitle');
-            if(errs.length > 0) {
-                titleEl.innerText = "⚠️ Diferencias en POSPRE detectadas";
-                titleEl.style.color = "var(--danger)";
-                document.getElementById('validationErrors').innerText = errs.join("\n");
-            } else {
-                titleEl.innerText = "✅ Todo cuadra perfectamente";
-                titleEl.style.color = "var(--success)";
-                document.getElementById('validationErrors').innerText = "No se encontraron diferencias matemáticas en los POSPRE de este proyecto entre las dos tablas.";
-            }
+            titleEl.innerText = "⏳ Consultando Tabla Dinámica...";
+            titleEl.style.color = "var(--warning)";
+            document.getElementById('validationErrors').innerText = "Conectando con Google Sheets para leer la tabla dinámica en tiempo real...";
             document.getElementById('validationModal').style.display = 'flex';
+
+            try {
+                // Hacemos la consulta directamente a Google Sheets buscando la Tabla Dinámica
+                const response = await fetch(WEB_APP_URL + "?action=getDiferencias&proyecto=" + encodeURIComponent(curPro));
+                const result = await response.json();
+
+                if (result.status === 'success' || result.status === 'warning') {
+                    if (result.errores && result.errores.length > 0) {
+                        titleEl.innerText = "⚠️ Diferencias encontradas en la TD";
+                        titleEl.style.color = "var(--danger)";
+                        document.getElementById('validationErrors').innerText = result.errores.join("\n");
+                    } else {
+                        titleEl.innerText = "✅ Todo cuadra perfectamente";
+                        titleEl.style.color = "var(--success)";
+                        document.getElementById('validationErrors').innerText = "No se encontraron diferencias matemáticas en la tabla dinámica para este proyecto.";
+                    }
+                } else {
+                    titleEl.innerText = "❌ Error en consulta";
+                    titleEl.style.color = "var(--danger)";
+                    document.getElementById('validationErrors').innerText = result.message || "Error al leer la tabla dinámica.";
+                }
+            } catch (error) {
+                titleEl.innerText = "❌ Error de conexión";
+                titleEl.style.color = "var(--danger)";
+                document.getElementById('validationErrors').innerText = "Fallo al conectar con Google Sheets: " + error.message;
+            }
         }
 
         function toYYYYMMDD(v) { 
