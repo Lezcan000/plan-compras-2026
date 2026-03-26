@@ -126,7 +126,7 @@
 
         <div class="filters-bar" style="padding: 12px 25px; background: #ffffff; border-bottom: 1px solid var(--border); display: flex; gap: 20px; align-items: center; z-index: 25;">
             <strong style="font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtros:</strong>
-            <select id="filterProyecto" onchange="renderTable()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; min-width: 180px; background: #f8fafc;">
+            <select id="filterProyecto" onchange="onProyectoPlanChange()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; min-width: 180px; background: #f8fafc;">
                 <option value="">Todos los Proyectos</option>
             </select>
             <select id="filterEstado" onchange="renderTable()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; min-width: 180px; background: #f8fafc;">
@@ -957,6 +957,24 @@
                 t==='Plan'?renderTable():renderAnexoTable(); triggerAutoSave();
             }
         }
+        
+        function onProyectoPlanChange(){ 
+            let fP = document.getElementById('filterProyecto').value;
+            let pSet = new Set();
+            appData.forEach(r => {
+                if(!fP || String(r.Proyecto) === String(fP)) {
+                    if(r["Posición Presupuestaría"]) pSet.add(r["Posición Presupuestaría"]);
+                }
+            });
+            let selPospre = document.getElementById('filterPosprePlan');
+            if (selPospre) {
+                let currP = selPospre.value;
+                selPospre.innerHTML = '<option value="">Todos los POSPRE</option>' + Array.from(pSet).sort().map(p => `<option value="${p}">${p}</option>`).join('');
+                if(Array.from(pSet).includes(currP)) selPospre.value = currP; else selPospre.value = "";
+            }
+            renderTable(); 
+        }
+
         function onProyectoAnexoChange(){ 
             let fP = document.getElementById('filterProyectoAnexo').value;
             let aSet = new Set();
