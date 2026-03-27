@@ -1002,8 +1002,34 @@
         function switchView(v){ currentView=v; document.getElementById('viewPlanCompras').classList.toggle('view-hidden', v==='Anexo'); document.getElementById('viewAnexoPresupuestal').classList.toggle('view-hidden', v==='Plan'); }
 
         function exportData(t){
-            let d = t==='Plan'?appData:anexoData, h = t==='Plan'?predefinedHeaders:anexoHeaders.filter(c => c !== 'Reserva'), fn = t==='Plan'?"Plan_2026.xlsx":`Anexo_${document.getElementById('filterProyectoAnexo').value}.xlsx`;
-            if(t==='Anexo') d = d.filter(r => String(r.Proyecto) === String(document.getElementById('filterProyectoAnexo').value));
+            let d = t==='Plan' ? appData : anexoData;
+            let h = t==='Plan' ? predefinedHeaders : anexoHeaders.filter(c => c !== 'Reserva');
+            let fn = t==='Plan' ? "Plan_2026.xlsx" : `Anexo_${document.getElementById('filterProyectoAnexo').value || 'Completo'}.xlsx`;
+            
+            // APLICAR FILTROS ANTES DE EXPORTAR
+            if(t === 'Plan') {
+                let fP = document.getElementById('filterProyecto').value;
+                let fE = document.getElementById('filterEstado').value;
+                let fPosprePlan = document.getElementById('filterPosprePlan')?.value || "";
+                
+                d = d.filter(r => {
+                    if(fP && String(r.Proyecto) !== String(fP)) return false; 
+                    if(fE && String(r.ESTADO) !== String(fE)) return false;
+                    if(fPosprePlan && String(r["Posición Presupuestaría"]) !== String(fPosprePlan)) return false;
+                    return true;
+                });
+            } else {
+                let fP = document.getElementById('filterProyectoAnexo').value;
+                let fA = document.getElementById('filterActividadMGA')?.value || "";
+                let fPospre = document.getElementById('filterPospreAnexo')?.value || "";
+                
+                d = d.filter(r => {
+                    if(String(r.Proyecto) !== String(fP)) return false; 
+                    if(fA && String(r["ACTIVIDAD MGA"]) !== String(fA)) return false;
+                    if(fPospre && String(r["Clasificador por objeto de gasto (POSPRE)"]) !== String(fPospre)) return false;
+                    return true;
+                });
+            }
             
             const ws = XLSX.utils.json_to_sheet(d.map(r => { let x={}; h.forEach(c=>x[c]=r[c]||""); return x; }));
             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Datos"); 
