@@ -235,7 +235,9 @@
         <div class="modal modal-large">
             <h3 id="validationTitle">⚠️ Diferencias encontradas</h3>
             <p id="validationDesc" style="font-size: 14px; color: var(--text-muted);">Cálculo en tiempo real comparando Plan de Compras vs Anexo Presupuestal:</p>
-            <pre id="validationErrors"></pre>
+            
+            <div id="validationErrors" style="background: #f8fafc; padding: 15px; border-radius: 8px; font-size: 13px; max-height: 400px; overflow-y: auto; border: 1px solid var(--border);"></div>
+            
             <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
                 <button class="btn btn-primary" onclick="document.getElementById('validationModal').style.display='none'">Cerrar</button>
             </div>
@@ -389,27 +391,53 @@
             saveTimeoutId = setTimeout(() => { ejecutarGuardadoSilencioso(); }, 2500); 
         }
 
-        async function ejecutarGuardadoSilencioso() {
-            try {
-                const payload = {
-                    action: 'validarYGuardarDeltas',
-                    planDeltas: { adds: planDeltas.adds, updates: planDeltas.updates, deletes: planDeltas.deletes },
-                    anexoDeltas: { adds: anexoDeltas.adds, updates: anexoDeltas.updates, deletes: anexoDeltas.deletes }
-                };
-                planDeltas = { adds: [], updates: [], deletes: [] }; anexoDeltas = { adds: [], updates: [], deletes: [] };
-                const response = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
-                const result = await response.json();
-                
-                if (result.status === 'success' || result.status === 'warning') { 
-                    updateSaveStatus('saved'); hasUnsavedChanges = false; 
-                } else {
-                    updateSaveStatus('error');
+        async function ejecutarGuardadoSilencioso(intentos = 3) {
+            // MEJORA: Crear un snapshot de seguridad antes de vaciar las colas
+            const snapshot = {
+                plan: { adds: [...planDeltas.adds], updates: [...planDeltas.updates], deletes: [...planDeltas.deletes] },
+                anexo: { adds: [...anexoDeltas.adds], updates: [...anexoDeltas.updates], deletes: [...anexoDeltas.deletes] }
+            };
+
+            // Vaciar las colas para que el usuario pueda seguir trabajando de inmediato
+            planDeltas = { adds: [], updates: [], deletes: [] }; 
+            anexoDeltas = { adds: [], updates: [], deletes: [] };
+
+            const payload = {
+                action: 'validarYGuardarDeltas',
+                planDeltas: snapshot.plan,
+                anexoDeltas: snapshot.anexo
+            };
+
+            // MEJORA: Sistema de reintentos con backoff
+            for (let i = 0; i < intentos; i++) {
+                try {
+                    const response = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+                    const result = await response.json();
+                    
+                    if (result.status === 'success' || result.status === 'warning') { 
+                        updateSaveStatus('saved'); 
+                        hasUnsavedChanges = false; 
+                        return; // Éxito, salir de la función
+                    }
+                } catch (error) { 
+                    // Si falla la conexión, esperar un tiempo que crece exponencialmente (2s, 4s...) y reintentar
+                    if (i < intentos - 1) {
+                        await new Promise(r => setTimeout(r, 2000 * (i + 1)));
+                    }
                 }
-            } catch (error) { 
-                updateSaveStatus('error'); 
-            } finally {
-                saveTimeoutId = null;
             }
+            
+            // Si llegamos aquí, todos los reintentos fallaron. Restaurar el snapshot a la cola actual.
+            planDeltas.adds.push(...snapshot.plan.adds);
+            planDeltas.updates.push(...snapshot.plan.updates);
+            planDeltas.deletes.push(...snapshot.plan.deletes);
+            
+            anexoDeltas.adds.push(...snapshot.anexo.adds);
+            anexoDeltas.updates.push(...snapshot.anexo.updates);
+            anexoDeltas.deletes.push(...snapshot.anexo.deletes);
+            
+            updateSaveStatus('error'); 
+            hasUnsavedChanges = true;
         }
 
         // LÓGICA PARA BOTÓN MANUAL DE DIFERENCIAS MATEMÁTICAS INSTANTÁNEAS
@@ -425,6 +453,8 @@
             let titleEl = document.getElementById('validationTitle');
             titleEl.innerText = "⏳ Consultando...";
             titleEl.style.color = "var(--warning)";
+            
+            document.getElementById('validationErrors').style.padding = "15px";
             document.getElementById('validationErrors').innerText = "Conectando con Google Sheets en tiempo real...";
             document.getElementById('validationModal').style.display = 'flex';
 
@@ -434,23 +464,59 @@
                 const result = await response.json();
 
                 if (result.status === 'success' || result.status === 'warning') {
-                    if (result.errores && result.errores.length > 0) {
+                    if (result.dataEstructurada && result.dataEstructurada.filas && result.dataEstructurada.filas.length > 0) {
                         titleEl.innerText = "⚠️ Diferencias encontradas";
                         titleEl.style.color = "var(--danger)";
-                        document.getElementById('validationErrors').innerText = result.errores.join("\n");
+                        
+                        document.getElementById('validationErrors').style.padding = "0"; // Quitamos padding para que la tabla ocupe todo el espacio
+                        
+                        // FIX 1: Agregamos white-space: normal para que los textos largos bajen de renglón y no fuercen scroll infinito
+                        let tableHTML = '<table style="width: 100%; border-collapse: collapse; text-align: left; margin: 0; white-space: normal;">';
+                        
+                        // Generamos los encabezados de la tabla
+                        if (result.dataEstructurada.encabezados.length > 0) {
+                            tableHTML += '<thead><tr>';
+                            result.dataEstructurada.encabezados.forEach(enc => {
+                                // Aseguramos z-index alto para que el encabezado no falle con el scroll
+                                tableHTML += `<th style="background-color: #cbd5e1; padding: 12px 16px; border-bottom: 2px solid #94a3b8; border-right: 1px solid #94a3b8; color: #0f172a; font-weight: bold; position: sticky; top: 0; z-index: 30;">${enc}</th>`;
+                            });
+                            tableHTML += '</tr></thead>';
+                        }
+                        
+                        // Generamos las filas de la tabla
+                        tableHTML += '<tbody>';
+                        result.dataEstructurada.filas.forEach(fila => {
+                            tableHTML += '<tr style="border-bottom: 1px solid var(--border);">';
+                            fila.forEach((celda, idx) => {
+                                // Pintamos la última columna (Diferencia) de rojo para resaltar el error
+                                let isLast = idx === fila.length - 1;
+                                
+                                // FIX 2: Agregamos background-color: #ffffff a las celdas normales. 
+                                // Como la primera columna es fija (heredada globalmente), el fondo blanco evita que se calque el texto al hacer scroll horizontal.
+                                let bgStyle = isLast ? 'background-color: #fee2e2; color: #dc2626; font-weight: bold;' : 'background-color: #ffffff; color: #334155;';
+                                tableHTML += `<td style="padding: 10px 16px; border-right: 1px solid var(--border); ${bgStyle}">${celda}</td>`;
+                            });
+                            tableHTML += '</tr>';
+                        });
+                        tableHTML += '</tbody></table>';
+                        
+                        document.getElementById('validationErrors').innerHTML = tableHTML;
                     } else {
                         titleEl.innerText = "✅ Todo cuadra perfectamente";
                         titleEl.style.color = "var(--success)";
-                        document.getElementById('validationErrors').innerText = "No se encontraron diferencias matemáticas para este proyecto.";
+                        document.getElementById('validationErrors').style.padding = "15px";
+                        document.getElementById('validationErrors').innerHTML = "<span style='color: #059669; font-weight: 500;'>No se encontraron diferencias matemáticas para este proyecto.</span>";
                     }
                 } else {
                     titleEl.innerText = "❌ Error en consulta";
                     titleEl.style.color = "var(--danger)";
+                    document.getElementById('validationErrors').style.padding = "15px";
                     document.getElementById('validationErrors').innerText = result.message || "Error al leer los datos.";
                 }
             } catch (error) {
                 titleEl.innerText = "❌ Error de conexión";
                 titleEl.style.color = "var(--danger)";
+                document.getElementById('validationErrors').style.padding = "15px";
                 document.getElementById('validationErrors').innerText = "Fallo al conectar con Google Sheets: " + error.message;
             }
         }
@@ -784,7 +850,24 @@
                 return;
             }
             
-            let lastChange = historyStack.pop();
+            // MEJORA: Buscar el último cambio que corresponde a la VISTA ACTUAL (Plan o Anexo)
+            let isCurrentAnexo = currentView === 'Anexo';
+            let changeIndex = -1;
+            for (let i = historyStack.length - 1; i >= 0; i--) {
+                if (historyStack[i].isAnexo === isCurrentAnexo) {
+                    changeIndex = i;
+                    break;
+                }
+            }
+
+            // Si no hay cambios en la vista que estoy mirando, no hacer nada (evita borrar datos a ciegas)
+            if (changeIndex === -1) {
+                mostrarNotificacion("No hay cambios en esta vista para deshacer.");
+                return;
+            }
+
+            // Extraer el cambio específico de la lista de historial
+            let lastChange = historyStack.splice(changeIndex, 1)[0];
             let dataArr = lastChange.isAnexo ? anexoData : appData;
             
             let rowIndex = dataArr.findIndex(r => r.ID === lastChange.id);
