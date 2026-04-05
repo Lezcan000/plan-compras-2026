@@ -535,7 +535,8 @@
                 return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
             }
             if(typeof v === 'string' && v.match(/^\d{4}-\d{2}-\d{2}$/)) return v;
-            let str = typeof v === 'string' && !v.includes('T') ? v + 'T00:00:00' : v;
+            // MEJORA: Anclamos al mediodía (T12:00:00) para evitar que la zona horaria UTC-5 retrase un día completo
+            let str = typeof v === 'string' && !v.includes('T') ? v + 'T12:00:00' : v;
             let d = new Date(str); 
             return isNaN(d.getTime()) ? String(v) : d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
         }
@@ -757,7 +758,8 @@
                     tr.appendChild(td);
                 });
                 
-                let delTd = document.createElement('td'); if(can) delTd.innerHTML = `<button class="btn-delete" onclick="eliminarFila('Plan', ${i})">❌</button>`;
+                // MEJORA: Pasamos el ID único (r.ID) en lugar de la posición (i) para evitar borrar filas incorrectas
+                let delTd = document.createElement('td'); if(can) delTd.innerHTML = `<button class="btn-delete" onclick="eliminarFila('Plan', '${r.ID}')">❌</button>`;
                 tr.appendChild(delTd); tbody.appendChild(tr);
             });
             document.getElementById('summaryBar').innerText = `Mostrando ${vis} de ${appData.length} | Total: ${formatMoneda(tot)}`;
@@ -833,7 +835,8 @@
                     tr.appendChild(td);
                 });
                 
-                let delTd = document.createElement('td'); if(can) delTd.innerHTML = `<button class="btn-delete" onclick="eliminarFila('Anexo', ${i})">❌</button>`;
+                // MEJORA: Pasamos el ID único (r.ID) en lugar de la posición (i) para evitar borrar filas incorrectas
+                let delTd = document.createElement('td'); if(can) delTd.innerHTML = `<button class="btn-delete" onclick="eliminarFila('Anexo', '${r.ID}')">❌</button>`;
                 tr.appendChild(delTd); tbody.appendChild(tr);
             });
             
@@ -973,6 +976,25 @@
                         if (historyStack.length > 30) historyStack.shift(); 
                         
                         data[i][c] = v; let id = data[i].ID; let del = data === appData ? planDeltas : anexoDeltas;
+                        
+                        // NUEVO: BuscarX Provisional en el navegador para Plan de Compras
+                        if (data === appData && c === "Actividad detallada") {
+                            let currentProject = data[i].Proyecto;
+                            let matchedRow = anexoData.find(row => String(row.Proyecto) === String(currentProject) && String(row["ACTIVIDADES DETALLADAS"]).trim() === String(v).trim());
+                            
+                            if (matchedRow) {
+                                // Datos provisionales solo en memoria local (NO entran a planDeltas para no dañar las fórmulas en Sheets)
+                                data[i]["ACTIVIDAD MGA"] = matchedRow["ACTIVIDAD MGA"] || "";
+                                data[i]["Codigo producto MGA"] = matchedRow["CÓDIGO PRODUCTO MGA"] || "";
+                                data[i]["Codigo CPC"] = matchedRow["Clasificador CPC"] || "";
+                            } else if (v === "") {
+                                // Si el usuario borra la actividad, limpiamos los provisionales
+                                data[i]["ACTIVIDAD MGA"] = "";
+                                data[i]["Codigo producto MGA"] = "";
+                                data[i]["Codigo CPC"] = "";
+                            }
+                        }
+                        
                         if(!del.adds.find(r=>r.ID===id)){
                             let u = del.updates.find(x=>x.id===id && x.field===c);
                             if(u) u.value = v; else del.updates.push({id, field:c, value:v});
@@ -1079,11 +1101,15 @@
             }, 300);
         }
         
-        function eliminarFila(t, i){
+        // MEJORA: La función ahora recibe y busca por el 'id' en lugar de un índice numérico
+        function eliminarFila(t, id){
             if(confirm("¿Eliminar?")){
-                let d = t==='Plan'?appData:anexoData, l = t==='Plan'?planDeltas:anexoDeltas, id = d[i].ID;
-                d.splice(i,1); l.deletes.push(id); l.adds = l.adds.filter(x=>x.ID!==id); l.updates = l.updates.filter(x=>x.id!==id);
-                t==='Plan'?renderTable():renderAnexoTable(); triggerAutoSave();
+                let d = t==='Plan'?appData:anexoData, l = t==='Plan'?planDeltas:anexoDeltas;
+                let idx = d.findIndex(r => r.ID === id);
+                if (idx !== -1) {
+                    d.splice(idx,1); l.deletes.push(id); l.adds = l.adds.filter(x=>x.ID!==id); l.updates = l.updates.filter(x=>x.id!==id);
+                    t==='Plan'?renderTable():renderAnexoTable(); triggerAutoSave();
+                }
             }
         }
         
