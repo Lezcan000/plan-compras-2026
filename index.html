@@ -236,6 +236,7 @@
             <h3 id="validationTitle">⚠️ Diferencias encontradas</h3>
             <p id="validationDesc" style="font-size: 14px; color: var(--text-muted);">Cálculo en tiempo real comparando Plan de Compras vs Anexo Presupuestal:</p>
             
+            <!-- Convertimos el <pre> en un <div> para poder alojar la tabla -->
             <div id="validationErrors" style="background: #f8fafc; padding: 15px; border-radius: 8px; font-size: 13px; max-height: 400px; overflow-y: auto; border: 1px solid var(--border);"></div>
             
             <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
@@ -455,7 +456,7 @@
             titleEl.style.color = "var(--warning)";
             
             document.getElementById('validationErrors').style.padding = "15px";
-            document.getElementById('validationErrors').innerText = "Conectando con Google Sheets en tiempo real...";
+            document.getElementById('validationErrors').innerText = "Conectando con la base de datos..."; // Texto modificado según instrucción
             document.getElementById('validationModal').style.display = 'flex';
 
             try {
@@ -688,8 +689,31 @@
                     let css = getColCss(cn);
                     if (css) td.style.cssText = css;
 
-                    if(can){
-                        if (columnasMixtas.includes(cn)) {
+                    // NUEVO: Definimos qué columnas son estáticas (solo lectura)
+                    const columnasEstaticas = ["Codigo Actividad MGA", "Codigo producto MGA", "Codigo CPC"];
+
+                    if(can && !columnasEstaticas.includes(cn)){
+                        if (cn === "Actividad detallada") {
+                            // NUEVO: Intercepción para generar lista desplegable cruzada con Anexo Presupuestal
+                            let currentProject = r.Proyecto;
+                            let anexoActivities = new Set();
+                            if (currentProject) {
+                                anexoData.forEach(anexoRow => {
+                                    if (String(anexoRow.Proyecto) === String(currentProject) && anexoRow["ACTIVIDADES DETALLADAS"]) {
+                                        anexoActivities.add(anexoRow["ACTIVIDADES DETALLADAS"]);
+                                    }
+                                });
+                            }
+                            let optionsHTML = `<option value=""></option>`;
+                            let found = false;
+                            Array.from(anexoActivities).sort().forEach(o => {
+                                let isSelected = String(v).trim() === String(o).trim();
+                                if(isSelected) found = true;
+                                optionsHTML += `<option value="${o}" ${isSelected ? 'selected' : ''}>${o}</option>`;
+                            });
+                            if(v !== "" && !found) optionsHTML += `<option value="${v}" selected>${v}</option>`;
+                            td.innerHTML = `<select class="cell-input plan-input" data-index="${i}" data-col="${cn}">${optionsHTML}</select>`;
+                        } else if (columnasMixtas.includes(cn)) {
                             let dlId = 'list-' + cn.replace(/\s+/g, '');
                             td.innerHTML = `<input type="text" class="cell-input plan-input" data-index="${i}" data-col="${cn}" list="${dlId}" value="${v}">`;
                         } else if(listasDesplegables[cn] || dependenciasColumna[cn]){
@@ -717,6 +741,7 @@
                             td.dataset.col = cn;
                         }
                     } else {
+                        // Las columnas estáticas y las filas sin permisos entran por aquí (solo se dibujan, no se editan)
                         let dVal = v;
                         if(columnasMoneda.includes(cn) && v !== "") dVal = formatMoneda(v);
                         else if(columnasFecha.includes(cn) && v !== "") dVal = toDDMMAAAA(v);
