@@ -274,7 +274,7 @@
             "Subsecretaría", "Tipo de Bien", "Necesidad", "Estudio Previo", "Objeto", "Modalidad", "Causal", 
             "Mes de Compra", "Duración del Proyecto", "Unidad de Tiempo", "Fecha Inicio Ejecución", "Valor Unitario", 
             "Proyecto", "Trasladar a Proyecto", "Tipo de Recurso", "Posición Presupuestaría", "Trasladar a Pospre", "Fondo", "Observación", "Indicador Plan de Dllo (Solo producto)", 
-            "Codigo Actividad MGA", "Actividad detallada", "Codigo producto MGA", "Codigo CPC", "ESTADO", "CDP", 
+            "ACTIVIDAD MGA", "Actividad detallada", "Codigo producto MGA", "Codigo CPC", "ESTADO", "CDP", 
             "Contrato Marco", "RP", "Contratista", "Técnico", "Jurídico", "Logístico", "Supervisor Principal", 
             "Supervisor Suplente", "Apoyo a la Supervisión Técnico", "Apoyo a la Supervisión Financiero", "Apoyo a la Supervisión Jurídico"
         ];
@@ -291,10 +291,9 @@
         const columnasMixtas = ["CDP", "RP", "Contrato Marco", "Contratista"]; 
         
         const dependenciasColumna = {
-            "Codigo Actividad MGA": "ActividadMGA", 
+            "ACTIVIDAD MGA": "ActividadMGA", 
             "Actividad detallada": "Detalle", 
             "Codigo producto MGA": "ProductoMGA",
-            "ACTIVIDAD MGA": "ActividadMGA", 
             "ACTIVIDADES DETALLADAS": "Detalle",
             "CÓDIGO PRODUCTO MGA": "ProductoMGA", 
             "PRODUCTO MGA": "ProductoMGA"
@@ -651,7 +650,9 @@
             if(col.includes('INDICADOR PLAN DE DLLO')) return 'width: 140px; min-width: 140px; max-width: 140px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
             if(['ESTADO'].includes(col)) return 'width: 160px; min-width: 160px; max-width: 160px;';
             if(col.includes('CLASIFICADOR CPC') || ['TRASLADAR A PROYECTO', 'TRASLADAR A POSPRE'].includes(col)) return 'width: 160px; min-width: 160px; max-width: 160px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
-            if(['OBJETO', 'OBSERVACIÓN', 'ACTIVIDAD DETALLADA', 'ACTIVIDAD MGA', 'ACTIVIDADES DETALLADAS'].includes(col)) return 'width: 280px; min-width: 280px; max-width: 280px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
+            
+            if(['ACTIVIDAD MGA'].includes(col)) return 'width: 140px; min-width: 140px; max-width: 140px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
+            if(['OBJETO', 'OBSERVACIÓN', 'ACTIVIDAD DETALLADA', 'ACTIVIDADES DETALLADAS'].includes(col)) return 'width: 350px; min-width: 350px; max-width: 350px; white-space: normal; line-height: 1.3; overflow-wrap: break-word;';
             return 'min-width: 120px;';
         };
 
@@ -690,7 +691,7 @@
                     if (css) td.style.cssText = css;
 
                     // NUEVO: Definimos qué columnas son estáticas (solo lectura)
-                    const columnasEstaticas = ["Codigo Actividad MGA", "Codigo producto MGA", "Codigo CPC"];
+                    const columnasEstaticas = ["ACTIVIDAD MGA", "Codigo producto MGA", "Codigo CPC"];
 
                     if(can && !columnasEstaticas.includes(cn)){
                         if (cn === "Actividad detallada") {
@@ -992,7 +993,13 @@
             n["Subsecretaría"] = sub; 
             
             let fP = document.getElementById('filterProyecto').value;
+            let fE = document.getElementById('filterEstado').value;
+            let fPosprePlan = document.getElementById('filterPosprePlan')?.value || "";
             let idNuevo = n.ID;
+            
+            // HERENCIA DE FILTROS: Si hay filtros activos, la fila nueva nace con esos valores para no volverse invisible
+            if(fE) n["ESTADO"] = fE;
+            if(fPosprePlan) n["Posición Presupuestaría"] = fPosprePlan;
             
             if(fP) {
                 n["Proyecto"] = fP;
@@ -1032,7 +1039,15 @@
             n["Subsecretaría"] = sub;
             
             let fP = document.getElementById('filterProyectoAnexo').value;
+            let fA = document.getElementById('filterActividadMGA')?.value || "";
+            let fPospre = document.getElementById('filterPospreAnexo')?.value || "";
+            
             n["Proyecto"] = fP;
+            
+            // HERENCIA DE FILTROS: Si hay filtros activos, la fila nueva nace con esos valores para no volverse invisible
+            if(fA) n["ACTIVIDAD MGA"] = fA;
+            if(fPospre) n["Clasificador por objeto de gasto (POSPRE)"] = fPospre;
+            
             let idNuevo = n.ID;
             
             let lastIndex = -1;
@@ -1144,7 +1159,8 @@
             
             ws['!cols'] = h.map(c => { 
                 let col = String(c).toUpperCase();
-                if(['OBJETO', 'ACTIVIDAD DETALLADA', 'ACTIVIDAD MGA', 'ACTIVIDADES DETALLADAS', 'OBSERVACIÓN', 'OBSERVACION'].includes(col)) return { wch: 50 }; 
+                if(['OBJETO', 'ACTIVIDAD DETALLADA', 'ACTIVIDADES DETALLADAS', 'OBSERVACIÓN', 'OBSERVACION'].includes(col)) return { wch: 60 }; 
+                if(['ACTIVIDAD MGA'].includes(col)) return { wch: 15 };
                 if(columnasMoneda.includes(c)) return { wch: 18 };
                 return { wch: 25 }; 
             });
