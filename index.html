@@ -941,7 +941,14 @@
                 
                 if(lastChange.isAnexo && (c === "CANTIDAD" || c === "COSTO TOTAL")){
                     let q = Number(dataArr[rowIndex]["CANTIDAD"])||0, t = Number(dataArr[rowIndex]["COSTO TOTAL"])||0;
-                    dataArr[rowIndex]["COSTO UNITARIO"] = q > 0 ? t / q : 0;
+                    let nuevoUnitario = q > 0 ? t / q : 0;
+                    dataArr[rowIndex]["COSTO UNITARIO"] = nuevoUnitario;
+                    
+                    // SOLUCIÓN: Empujar también el Costo Unitario al paquete de envíos al hacer Ctrl+Z
+                    if(!del.adds.find(r=>r.ID===id)){
+                        let uUnitario = del.updates.find(x=>x.id===id && x.field==="COSTO UNITARIO");
+                        if(uUnitario) uUnitario.value = nuevoUnitario; else del.updates.push({id, field:"COSTO UNITARIO", value:nuevoUnitario});
+                    }
                 }
                 
                 mostrarNotificacion("✅ Deshecho: Se restauró la columna '" + c + "'");
@@ -1021,7 +1028,14 @@
                         }
                         if(data === anexoData && (c === "CANTIDAD" || c === "COSTO TOTAL")){
                             let q = Number(data[i]["CANTIDAD"])||0, t = Number(data[i]["COSTO TOTAL"])||0;
-                            data[i]["COSTO UNITARIO"] = q > 0 ? t / q : 0;
+                            let nuevoUnitario = q > 0 ? t / q : 0;
+                            data[i]["COSTO UNITARIO"] = nuevoUnitario;
+                            
+                            // SOLUCIÓN: Empujar también el Costo Unitario al paquete de envíos al editar normalmente
+                            if(!del.adds.find(r=>r.ID===id)){
+                                let uUnitario = del.updates.find(x=>x.id===id && x.field==="COSTO UNITARIO");
+                                if(uUnitario) uUnitario.value = nuevoUnitario; else del.updates.push({id, field:"COSTO UNITARIO", value:nuevoUnitario});
+                            }
                         }
                         func(); triggerAutoSave();
                     } else if (isNumeric && hasLetters) {
