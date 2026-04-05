@@ -57,6 +57,10 @@
         .sort-icon { color: #64748b; font-size: 10px; margin-left: 5px; }
         .sort-icon.active { color: var(--primary); font-weight: bold; }
 
+        /* NUEVO: Clases para el Truco Espejo en celdas editables */
+        .cell-display { width: 100%; min-height: 20px; cursor: pointer; white-space: inherit; padding: 6px; border: 1px solid transparent; border-radius: 6px; box-sizing: border-box; transition: all 0.2s; word-wrap: break-word; }
+        .cell-display:hover { border: 1px dashed var(--primary); background: #dbeafe; }
+
         .cell-input { width: 100%; max-width: 100%; border: 1px solid transparent; background: transparent; font-family: inherit; font-size: 13px; color: inherit; outline: none; padding: 6px; border-radius: 6px; box-sizing: border-box; text-overflow: ellipsis; overflow: hidden; transition: all 0.2s; }
         .cell-input:hover { border: 1px dashed var(--primary); background: #dbeafe; }
         .cell-input:focus { border: 1px solid var(--primary); background: #fff; }
@@ -715,10 +719,10 @@
                                 optionsHTML += `<option value="${o}" ${isSelected ? 'selected' : ''}>${o}</option>`;
                             });
                             if(v !== "" && !found) optionsHTML += `<option value="${v}" selected>${v}</option>`;
-                            td.innerHTML = `<select class="cell-input plan-input" data-index="${i}" data-col="${cn}">${optionsHTML}</select>`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><select class="cell-input plan-input" style="display:none;" data-index="${i}" data-col="${cn}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">${optionsHTML}</select>`;
                         } else if (columnasMixtas.includes(cn)) {
                             let dlId = 'list-' + cn.replace(/\s+/g, '');
-                            td.innerHTML = `<input type="text" class="cell-input plan-input" data-index="${i}" data-col="${cn}" list="${dlId}" value="${v}">`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><input type="text" class="cell-input plan-input" style="display:none;" data-index="${i}" data-col="${cn}" list="${dlId}" value="${v}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
                         } else if(listasDesplegables[cn] || dependenciasColumna[cn]){
                             let opts = listasDesplegables[cn] || (mapasDependientes[dependenciasColumna[cn]]?.[r.Proyecto] || []);
                             let found = false;
@@ -730,12 +734,12 @@
                                 optionsHTML += `<option value="${o}" ${isSelected ? 'selected' : ''}>${o}</option>`;
                             });
                             if(v !== "" && !found) optionsHTML += `<option value="${v}" selected>${v}</option>`;
-                            td.innerHTML = `<select class="cell-input plan-input" data-index="${i}" data-col="${cn}">${optionsHTML}</select>`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><select class="cell-input plan-input" style="display:none;" data-index="${i}" data-col="${cn}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">${optionsHTML}</select>`;
                         } else if(columnasMoneda.includes(cn)) {
-                            td.innerHTML = `<input type="text" class="cell-input curr plan-input" data-index="${i}" data-col="${cn}" value="${v?formatMoneda(v):''}">`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v ? formatMoneda(v) : '&nbsp;'}</div><input type="text" class="cell-input curr plan-input" style="display:none;" data-index="${i}" data-col="${cn}" value="${v?formatMoneda(v):''}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
                         } else if(columnasFecha.includes(cn)) {
                             let dateVal = v ? toYYYYMMDD(v) : '';
-                            td.innerHTML = `<input type="date" class="cell-input plan-input" data-index="${i}" data-col="${cn}" value="${dateVal}">`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${dateVal ? toDDMMAAAA(v) : '&nbsp;'}</div><input type="date" class="cell-input plan-input" style="display:none;" data-index="${i}" data-col="${cn}" value="${dateVal}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
                         } else {
                             td.innerText = v;
                             td.contentEditable = true; 
@@ -797,7 +801,7 @@
                     if(can && cn !== "COSTO UNITARIO"){
                         if(columnasMixtas.includes(cn)){
                             let dlId = 'list-' + cn.replace(/\s+/g, '');
-                            td.innerHTML = `<input type="text" class="cell-input anexo-input" data-index="${i}" data-col="${cn}" list="${dlId}" value="${v}">`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><input type="text" class="cell-input anexo-input" style="display:none;" data-index="${i}" data-col="${cn}" list="${dlId}" value="${v}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
                         } else if(listasDesplegables[cn] || cn === "Clasificador por objeto de gasto (POSPRE)"){
                             let ln = cn === "Clasificador por objeto de gasto (POSPRE)" ? "Posición Presupuestaría" : cn;
                             let opts = listasDesplegables[ln] || [];
@@ -810,12 +814,12 @@
                                 optionsHTML += `<option value="${o}" ${isSelected ? 'selected' : ''}>${o}</option>`;
                             });
                             if(v !== "" && !found) optionsHTML += `<option value="${v}" selected>${v}</option>`;
-                            td.innerHTML = `<select class="cell-input anexo-input" data-index="${i}" data-col="${cn}">${optionsHTML}</select>`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><select class="cell-input anexo-input" style="display:none;" data-index="${i}" data-col="${cn}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">${optionsHTML}</select>`;
                         } else if(columnasMoneda.includes(cn)) {
-                            td.innerHTML = `<input type="text" class="cell-input curr anexo-input" data-index="${i}" data-col="${cn}" value="${v?formatMoneda(v):''}">`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v ? formatMoneda(v) : '&nbsp;'}</div><input type="text" class="cell-input curr anexo-input" style="display:none;" data-index="${i}" data-col="${cn}" value="${v?formatMoneda(v):''}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
                         } else if(columnasFecha.includes(cn)) {
                             let dateVal = v ? toYYYYMMDD(v) : '';
-                            td.innerHTML = `<input type="date" class="cell-input anexo-input" data-index="${i}" data-col="${cn}" value="${dateVal}">`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${dateVal ? toDDMMAAAA(v) : '&nbsp;'}</div><input type="date" class="cell-input anexo-input" style="display:none;" data-index="${i}" data-col="${cn}" value="${dateVal}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
                         } else {
                             td.innerText = v;
                             td.contentEditable = true; 
