@@ -417,6 +417,7 @@
                     if (result.status === 'success' || result.status === 'warning') { 
                         updateSaveStatus('saved'); 
                         hasUnsavedChanges = false; 
+                        saveTimeoutId = null; // SOLUCIÓN: Limpia el temporizador para evitar la alerta fantasma al cerrar
                         return; // Éxito, salir de la función
                     }
                 } catch (error) { 
@@ -438,6 +439,7 @@
             
             updateSaveStatus('error'); 
             hasUnsavedChanges = true;
+            saveTimeoutId = null; // SOLUCIÓN: También limpiarlo aquí por seguridad si falla permanentemente
         }
 
         // LÓGICA PARA BOTÓN MANUAL DE DIFERENCIAS MATEMÁTICAS INSTANTÁNEAS
