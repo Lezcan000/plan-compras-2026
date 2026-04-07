@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bloqueo de caché para que los usuarios siempre vean los cambios recientes -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -141,7 +142,8 @@
                 <option value="">Todos los POSPRE</option>
             </select>
             
-            <div style="flex-grow: 1;"></div> <input type="text" id="searchObjeto" placeholder="🔍 Buscar Objeto..." style="padding: 8px 12px; border: 1px solid var(--primary); border-radius: 6px; font-size: 13px; min-width: 250px; background: #f0f9ff; outline: none;" onkeyup="debounceSearch('Plan')">
+            <div style="flex-grow: 1;"></div> 
+            <input type="text" id="searchObjeto" placeholder="🔍 Buscar Objeto..." style="padding: 8px 12px; border: 1px solid var(--primary); border-radius: 6px; font-size: 13px; min-width: 250px; background: #f0f9ff; outline: none;" onkeyup="debounceSearch('Plan')">
             
             <button onclick="limpiarFiltros('Plan')" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: transparent; color: #475569; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s;" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'">🧹 Quitar Filtros</button>
         </div>
@@ -255,6 +257,12 @@
             <span id="filterPopupTitle">Columna</span>
             <button onclick="closeColumnFilter()" style="border:none; background:none; cursor:pointer; color: #64748b; font-size: 14px;">✖</button>
         </div>
+        
+        <!-- NUEVO: Cajita de búsqueda integrada dentro del embudo -->
+        <div style="margin-bottom: 8px;">
+            <input type="text" id="filterPopupSearch" placeholder="🔍 Buscar opción..." style="width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; font-size: 12px; outline: none; background: #f8fafc;" onkeyup="searchFilterPopup()">
+        </div>
+        
         <div id="filterPopupList" style="max-height:200px; overflow-y:auto; font-size:13px; margin-bottom:10px; color: #334155;"></div>
         <div style="display:flex; justify-content:space-between; border-top: 1px solid #e2e8f0; padding-top: 8px;">
             <div style="display:flex; gap: 5px;">
@@ -272,7 +280,7 @@
         
         let saveTimeoutId = null;
         let hasUnsavedChanges = false; 
-        let isSaving = false; // NUEVO: Bandera de protección contra Race Conditions
+        let isSaving = false; 
         let currentView = 'Plan'; 
         let appData = [];
         let anexoData = [];
@@ -280,12 +288,10 @@
         let anexoDeltas = { adds: [], updates: [], deletes: [] };
         let historyStack = [];
 
-        // VARIABLES PARA LOS FILTROS DE EMBUDO Y BUSCADOR
         let activeColFiltersPlan = {}; 
         let activeColFiltersAnexo = {};
         let searchTimeoutId = null;
 
-        // Lista de columnas excepcionadas (NO tendrán embudo)
         const noFilterCols = [
             "Fecha Inicio Ejecución", "Objeto", "Valor Unitario",
             "Indicador Plan de Dllo (Solo producto)", "ACTIVIDAD MGA",
@@ -427,18 +433,15 @@
             saveTimeoutId = setTimeout(() => { ejecutarGuardadoSilencioso(); }, 2500); 
         }
 
-        // FUNCIONALIDAD MEJORADA: Autoguardado con Semáforo (Mutex) contra condiciones de carrera
         async function ejecutarGuardadoSilencioso(intentos = 3) {
-            // 1. Si ya hay un guardado en progreso, abortar silenciosamente
             if (isSaving) return; 
 
-            // 2. Si no hay nada que guardar, abortar
             if (planDeltas.adds.length === 0 && planDeltas.updates.length === 0 && planDeltas.deletes.length === 0 &&
                 anexoDeltas.adds.length === 0 && anexoDeltas.updates.length === 0 && anexoDeltas.deletes.length === 0) {
                 return;
             }
             
-            isSaving = true; // Activar semáforo rojo
+            isSaving = true; 
 
             try {
                 const snapshot = {
@@ -483,12 +486,11 @@
                 
                 updateSaveStatus('error'); hasUnsavedChanges = true; saveTimeoutId = null; 
             } finally {
-                isSaving = false; // Liberar semáforo verde
+                isSaving = false; 
                 
-                // 3. Comprobar si llegaron datos nuevos durante el guardado
                 if (planDeltas.adds.length > 0 || planDeltas.updates.length > 0 || planDeltas.deletes.length > 0 ||
                     anexoDeltas.adds.length > 0 || anexoDeltas.updates.length > 0 || anexoDeltas.deletes.length > 0) {
-                    triggerAutoSave(); // Relanzar un nuevo ciclo si hay carga pendiente
+                    triggerAutoSave(); 
                 }
             }
         }
@@ -639,6 +641,21 @@
             }, 300);
         }
 
+        // NUEVO: Función para el mini-buscador dentro del embudo
+        function searchFilterPopup() {
+            let input = document.getElementById('filterPopupSearch').value.toLowerCase();
+            let labels = document.getElementById('filterPopupList').querySelectorAll('label');
+            
+            labels.forEach(label => {
+                let text = label.textContent || label.innerText;
+                if (text.toLowerCase().indexOf(input) > -1) {
+                    label.style.display = 'block';
+                } else {
+                    label.style.display = 'none';
+                }
+            });
+        }
+
         function limpiarFiltros(view) {
             if (view === 'Plan') {
                 if(document.getElementById('filterProyecto')) document.getElementById('filterProyecto').value = "";
@@ -661,8 +678,37 @@
             let data = view === 'Plan' ? appData : anexoData;
             let activeFilters = view === 'Plan' ? activeColFiltersPlan : activeColFiltersAnexo;
 
+            // NUEVO: Lógica de Filtros en Cascada (Doble Filtrado)
+            // 1. Obtener valores de los filtros globales
+            let fP = view === 'Plan' ? document.getElementById('filterProyecto').value : document.getElementById('filterProyectoAnexo').value;
+            let fPospre = view === 'Plan' ? (document.getElementById('filterPosprePlan')?.value || "") : (document.getElementById('filterPospreAnexo')?.value || "");
+            let fA = view === 'Anexo' ? (document.getElementById('filterActividadMGA')?.value || "") : "";
+            let sObjeto = view === 'Plan' ? (document.getElementById('searchObjeto')?.value.toLowerCase() || "") : "";
+
+            // 2. Filtrar los datos para armar el embudo inteligente
+            let filteredData = data.filter(r => {
+                // Aplicar filtros fijos superiores
+                if (fP && String(r.Proyecto) !== String(fP)) return false;
+                if (view === 'Plan' && fPospre && String(r["Posición Presupuestaría"]) !== String(fPospre)) return false;
+                if (view === 'Anexo' && fPospre && String(r["Clasificador por objeto de gasto (POSPRE)"]) !== String(fPospre)) return false;
+                if (view === 'Anexo' && fA && String(r["ACTIVIDAD MGA"]) !== String(fA)) return false;
+                if (view === 'Plan' && sObjeto) {
+                    let obj = String(r["Objeto"] || "").toLowerCase();
+                    if (!obj.includes(sObjeto)) return false;
+                }
+
+                // Aplicar TODOS los demás embudos activos, EXCEPTO el que estoy abriendo
+                for (let c in activeFilters) {
+                    if (c !== col && activeFilters[c] && activeFilters[c].length > 0) {
+                        if (!activeFilters[c].includes(String(r[c] || "").trim())) return false;
+                    }
+                }
+                return true;
+            });
+
+            // 3. Ahora sí, sacar los valores únicos de esa data ya filtrada
             let uniqueValues = new Set();
-            data.forEach(r => uniqueValues.add(String(r[col] || "").trim()));
+            filteredData.forEach(r => uniqueValues.add(String(r[col] || "").trim()));
             let sortedVals = Array.from(uniqueValues).sort();
 
             let listHTML = '';
@@ -676,6 +722,10 @@
 
             document.getElementById('filterPopupTitle').innerText = col;
             document.getElementById('filterPopupList').innerHTML = listHTML;
+            
+            // Resetear el buscador interno cada vez que se abre el embudo
+            let searchInput = document.getElementById('filterPopupSearch');
+            if(searchInput) searchInput.value = '';
 
             let popup = document.getElementById('columnFilterPopup');
             popup.style.display = 'block';
