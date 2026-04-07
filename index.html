@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Bloqueo de caché para que los usuarios siempre vean los cambios recientes -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -34,6 +33,9 @@
         .btn-outline { background-color: transparent; border: 1px solid var(--border); color: var(--text-main); box-shadow: none; }
         .btn-outline:hover { background-color: #f1f5f9; border-color: #cbd5e1; }
         
+        .btn-copy { background-color: #e0f2fe; color: #0284c7; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s; font-weight: bold; margin-right: 4px; }
+        .btn-copy:hover { background-color: #0284c7; color: white; }
+
         .user-simulator { background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
         select { padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-weight: 500; outline: none; color: var(--text-main); background-color: #fff; }
         
@@ -97,9 +99,7 @@
     <div id="viewPlanCompras" class="container">
         <div class="header">
             <div>
-                <!-- INCLUSIÓN DEL LOGO -->
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <!-- El logo se cargará automáticamente si subes un archivo llamado "logo.png" a tu repositorio -->
                     <img src="logo.png" alt="Logo Alcaldía" id="logoAlcaldia" style="height: 45px; object-fit: contain; border-radius: 4px;">
                     
                     <div style="border-left: 2px solid #e2e8f0; height: 30px; margin: 0 5px;"></div>
@@ -141,14 +141,9 @@
                 <option value="">Todos los POSPRE</option>
             </select>
             
-            <div style="flex-grow: 1;"></div> <!-- Empuja el buscador a la derecha -->
+            <div style="flex-grow: 1;"></div> <input type="text" id="searchObjeto" placeholder="🔍 Buscar Objeto..." style="padding: 8px 12px; border: 1px solid var(--primary); border-radius: 6px; font-size: 13px; min-width: 250px; background: #f0f9ff; outline: none;" onkeyup="debounceSearch('Plan')">
             
-            <!-- Buscadores separados (Debounce) -->
-            <input type="text" id="searchObjeto" placeholder="🔍 Buscar Objeto..." style="padding: 8px 12px; border: 1px solid var(--primary); border-radius: 6px; font-size: 13px; min-width: 200px; background: #f0f9ff; outline: none;" onkeyup="debounceSearch('Plan')">
-            <input type="text" id="searchObservacion" placeholder="🔍 Buscar Observación..." style="padding: 8px 12px; border: 1px solid var(--primary); border-radius: 6px; font-size: 13px; min-width: 200px; background: #f0f9ff; outline: none;" onkeyup="debounceSearch('Plan')">
-            
-            <!-- Botón Borrar Filtros -->
-            <button onclick="limpiarFiltros('Plan')" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #ef4444; background: transparent; color: #ef4444; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s;" onmouseover="this.style.backgroundColor='#fee2e2'" onmouseout="this.style.backgroundColor='transparent'">🧹 Borrar Filtros</button>
+            <button onclick="limpiarFiltros('Plan')" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: transparent; color: #475569; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s;" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'">🧹 Quitar Filtros</button>
         </div>
 
         <div class="table-wrapper">
@@ -165,7 +160,6 @@
         <div class="header">
             <div>
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <!-- El logo se cargará automáticamente si subes un archivo llamado "logo.png" a tu repositorio -->
                     <img src="logo.png" alt="Logo Alcaldía" style="height: 45px; object-fit: contain; border-radius: 4px;">
                     <div style="border-left: 2px solid #e2e8f0; height: 30px; margin: 0 5px;"></div>
                     <h2 style="margin: 0; color: #0f172a; font-size: 20px; font-weight: 700;">Anexo Presupuestal</h2>
@@ -179,7 +173,6 @@
             <div class="controls">
                 <button class="btn btn-outline" onclick="switchView('Plan')">⬅️ Volver al Plan</button>
                 <button class="btn btn-info" onclick="cargarDatosDesdeGoogle()">🔄 Recargar</button>
-                <!-- BOTÓN VER DIFERENCIAS -->
                 <button class="btn btn-warning" onclick="verDiferencias()">⚠️ Ver Diferencias</button>
                 <button id="btnCrearFilaAnexo" class="btn btn-warning" onclick="crearFilaAnexo()" style="display: none;">➕ Añadir Fila</button>
                 <button class="btn btn-success" onclick="exportData('Anexo')">💾 Descargar Excel</button>
@@ -210,7 +203,7 @@
                 <option value="">Todos los POSPRE</option>
             </select>
             <div style="flex-grow: 1;"></div>
-            <button onclick="limpiarFiltros('Anexo')" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #ef4444; background: transparent; color: #ef4444; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s;" onmouseover="this.style.backgroundColor='#fee2e2'" onmouseout="this.style.backgroundColor='transparent'">🧹 Borrar Filtros</button>
+            <button onclick="limpiarFiltros('Anexo')" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: transparent; color: #475569; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s;" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'">🧹 Quitar Filtros</button>
         </div>
 
         <div class="table-wrapper">
@@ -223,7 +216,6 @@
         </div>
     </div>
 
-    <!-- Modales y Alertas -->
     <div class="modal-overlay" id="msgModal">
         <div class="modal" style="width: 400px; text-align: center;">
             <h3 id="msgModalTitle" style="margin-top: 0; color: var(--text-main);">Alerta</h3>
@@ -258,7 +250,6 @@
         </div>
     </div>
 
-    <!-- Modal Flotante de los Filtros de Embudo -->
     <div id="columnFilterPopup" style="display:none; position:absolute; z-index:1000; background:white; border:1px solid #cbd5e1; border-radius:8px; padding:12px; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
         <div style="font-weight:700; margin-bottom:8px; border-bottom:1px solid #cbd5e1; padding-bottom:8px; display:flex; justify-content:space-between; align-items:center; font-size: 13px; color: var(--primary);">
             <span id="filterPopupTitle">Columna</span>
@@ -281,6 +272,7 @@
         
         let saveTimeoutId = null;
         let hasUnsavedChanges = false; 
+        let isSaving = false; // NUEVO: Bandera de protección contra Race Conditions
         let currentView = 'Plan'; 
         let appData = [];
         let anexoData = [];
@@ -295,7 +287,7 @@
 
         // Lista de columnas excepcionadas (NO tendrán embudo)
         const noFilterCols = [
-            "Fecha Inicio Ejecución", "Objeto", "Valor Unitario", "Observación",
+            "Fecha Inicio Ejecución", "Objeto", "Valor Unitario",
             "Indicador Plan de Dllo (Solo producto)", "ACTIVIDAD MGA",
             "Actividad detallada", "ACTIVIDADES DETALLADAS",
             "Codigo producto MGA", "CÓDIGO PRODUCTO MGA",
@@ -304,7 +296,7 @@
         ];
 
         window.addEventListener('beforeunload', function (e) {
-            if (hasUnsavedChanges || saveTimeoutId) {
+            if (hasUnsavedChanges || saveTimeoutId || isSaving) {
                 e.preventDefault(); e.returnValue = 'Tienes cambios sin guardar.';
             }
         });
@@ -435,37 +427,70 @@
             saveTimeoutId = setTimeout(() => { ejecutarGuardadoSilencioso(); }, 2500); 
         }
 
+        // FUNCIONALIDAD MEJORADA: Autoguardado con Semáforo (Mutex) contra condiciones de carrera
         async function ejecutarGuardadoSilencioso(intentos = 3) {
-            const snapshot = {
-                plan: { adds: [...planDeltas.adds], updates: [...planDeltas.updates], deletes: [...planDeltas.deletes] },
-                anexo: { adds: [...anexoDeltas.adds], updates: [...anexoDeltas.updates], deletes: [...anexoDeltas.deletes] }
-            };
+            // 1. Si ya hay un guardado en progreso, abortar silenciosamente
+            if (isSaving) return; 
 
-            planDeltas = { adds: [], updates: [], deletes: [] }; 
-            anexoDeltas = { adds: [], updates: [], deletes: [] };
-
-            const payload = { action: 'validarYGuardarDeltas', planDeltas: snapshot.plan, anexoDeltas: snapshot.anexo };
-
-            for (let i = 0; i < intentos; i++) {
-                try {
-                    const response = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
-                    const result = await response.json();
-                    
-                    if (result.status === 'success' || result.status === 'warning') { 
-                        updateSaveStatus('saved'); 
-                        hasUnsavedChanges = false; 
-                        saveTimeoutId = null; 
-                        return; 
-                    }
-                } catch (error) { 
-                    if (i < intentos - 1) { await new Promise(r => setTimeout(r, 2000 * (i + 1))); }
-                }
+            // 2. Si no hay nada que guardar, abortar
+            if (planDeltas.adds.length === 0 && planDeltas.updates.length === 0 && planDeltas.deletes.length === 0 &&
+                anexoDeltas.adds.length === 0 && anexoDeltas.updates.length === 0 && anexoDeltas.deletes.length === 0) {
+                return;
             }
             
-            planDeltas.adds.push(...snapshot.plan.adds); planDeltas.updates.push(...snapshot.plan.updates); planDeltas.deletes.push(...snapshot.plan.deletes);
-            anexoDeltas.adds.push(...snapshot.anexo.adds); anexoDeltas.updates.push(...snapshot.anexo.updates); anexoDeltas.deletes.push(...snapshot.anexo.deletes);
-            
-            updateSaveStatus('error'); hasUnsavedChanges = true; saveTimeoutId = null; 
+            isSaving = true; // Activar semáforo rojo
+
+            try {
+                const snapshot = {
+                    plan: { adds: [...planDeltas.adds], updates: [...planDeltas.updates], deletes: [...planDeltas.deletes] },
+                    anexo: { adds: [...anexoDeltas.adds], updates: [...anexoDeltas.updates], deletes: [...anexoDeltas.deletes] }
+                };
+
+                planDeltas = { adds: [], updates: [], deletes: [] }; 
+                anexoDeltas = { adds: [], updates: [], deletes: [] };
+
+                const payload = { action: 'validarYGuardarDeltas', planDeltas: snapshot.plan, anexoDeltas: snapshot.anexo };
+
+                for (let i = 0; i < intentos; i++) {
+                    try {
+                        const response = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+                        const result = await response.json();
+                        
+                        if (result.status === 'success' || result.status === 'warning') { 
+                            updateSaveStatus('saved'); 
+                            hasUnsavedChanges = false; 
+                            saveTimeoutId = null; 
+                            return; 
+                        }
+                    } catch (error) { 
+                        if (i < intentos - 1) { await new Promise(r => setTimeout(r, 2000 * (i + 1))); }
+                    }
+                }
+                
+                planDeltas.adds.unshift(...snapshot.plan.adds); planDeltas.updates.unshift(...snapshot.plan.updates); planDeltas.deletes.unshift(...snapshot.plan.deletes);
+                anexoDeltas.adds.unshift(...snapshot.anexo.adds); anexoDeltas.updates.unshift(...snapshot.anexo.updates); anexoDeltas.deletes.unshift(...snapshot.anexo.deletes);
+                
+                let dedup = (arr) => {
+                    let seen = new Map();
+                    for (let idx = arr.length - 1; idx >= 0; idx--) {
+                        let key = arr[idx].id + '||' + arr[idx].field;
+                        if (seen.has(key)) { arr.splice(idx, 1); }
+                        else { seen.set(key, true); }
+                    }
+                };
+                dedup(planDeltas.updates); 
+                dedup(anexoDeltas.updates);
+                
+                updateSaveStatus('error'); hasUnsavedChanges = true; saveTimeoutId = null; 
+            } finally {
+                isSaving = false; // Liberar semáforo verde
+                
+                // 3. Comprobar si llegaron datos nuevos durante el guardado
+                if (planDeltas.adds.length > 0 || planDeltas.updates.length > 0 || planDeltas.deletes.length > 0 ||
+                    anexoDeltas.adds.length > 0 || anexoDeltas.updates.length > 0 || anexoDeltas.deletes.length > 0) {
+                    triggerAutoSave(); // Relanzar un nuevo ciclo si hay carga pendiente
+                }
+            }
         }
 
         async function verDiferencias() {
@@ -606,7 +631,6 @@
             isAnexo ? renderAnexoTable() : renderTable();
         }
 
-        // FUNCIONES NUEVAS: Buscador Global con Debounce (Amortiguador)
         function debounceSearch(view) {
             clearTimeout(searchTimeoutId);
             searchTimeoutId = setTimeout(() => {
@@ -615,12 +639,10 @@
             }, 300);
         }
 
-        // Lógica de limpieza de filtros
         function limpiarFiltros(view) {
             if (view === 'Plan') {
                 if(document.getElementById('filterProyecto')) document.getElementById('filterProyecto').value = "";
                 if(document.getElementById('searchObjeto')) document.getElementById('searchObjeto').value = "";
-                if(document.getElementById('searchObservacion')) document.getElementById('searchObservacion').value = "";
                 activeColFiltersPlan = {};
                 onProyectoPlanChange(); 
             } else {
@@ -631,7 +653,6 @@
             }
         }
 
-        // Lógica de Embudos Flotantes
         let currentFilterContext = { view: '', col: '' };
 
         function openColumnFilter(e, col, view) {
@@ -745,7 +766,7 @@
         };
 
         function renderTable() {
-            document.getElementById('btnCrearNecesidad').style.display = (currentRole !== 'Invitado') ? 'flex' : 'none';
+            document.getElementById('btnCrearNecesidad').style.display = (currentRole === 'Equipo de Contratación') ? 'flex' : 'none';
             const tbody = document.getElementById('tableBody');
             
             let h = '<tr>'; 
@@ -766,7 +787,7 @@
                         </div>
                       </th>`;
             });
-            h += '<th style="width: 40px;">🗑️</th></tr>'; 
+            h += '<th style="width: 75px; text-align: center;">⚙️</th></tr>'; 
             document.getElementById('tableHead').innerHTML = h; tbody.innerHTML = '';
             
             let vis = 0, tot = 0; 
@@ -774,7 +795,6 @@
                 fPosprePlan = document.getElementById('filterPosprePlan')?.value || "";
             
             let sObjeto = document.getElementById('searchObjeto')?.value.toLowerCase() || "";
-            let sObservacion = document.getElementById('searchObservacion')?.value.toLowerCase() || "";
                 
             appData.forEach((r, i) => {
                 if(fP && String(r.Proyecto) !== String(fP)) return; 
@@ -783,10 +803,6 @@
                 if (sObjeto) {
                     let obj = String(r["Objeto"] || "").toLowerCase();
                     if (!obj.includes(sObjeto)) return;
-                }
-                if (sObservacion) {
-                    let obs = String(r["Observación"] || "").toLowerCase();
-                    if (!obs.includes(sObservacion)) return;
                 }
 
                 let passesColFilters = true;
@@ -803,8 +819,8 @@
                 let actDetallada = String(r["Actividad detallada"] || "").trim().toLowerCase();
                 if (!actDetallada.startsWith("reserva")) { tot += Number(r["Valor Unitario"]) || 0; }
                 
-                let can = checkPermissions(r["Subsecretaría"], currentRole);
-                let tr = document.createElement('tr'); tr.className = can ? 'row-editable' : 'row-locked';
+                let canRow = checkPermissions(r["Subsecretaría"], currentRole);
+                let tr = document.createElement('tr'); tr.className = canRow ? 'row-editable' : 'row-locked';
                 tr.setAttribute('data-rowid', r.ID);
                 
                 predefinedHeaders.forEach(cn => {
@@ -813,8 +829,17 @@
                     if (css) td.style.cssText = css;
 
                     const columnasEstaticas = ["ACTIVIDAD MGA", "Codigo producto MGA", "Codigo CPC"];
+                    
+                    let canEditCell = false;
+                    if (canRow && !columnasEstaticas.includes(cn)) {
+                        if (currentRole === 'Equipo de Contratación') {
+                            canEditCell = true;
+                        } else if (cn === "Actividad detallada") {
+                            canEditCell = true;
+                        }
+                    }
 
-                    if(can && !columnasEstaticas.includes(cn)){
+                    if(canEditCell){
                         if (cn === "Actividad detallada") {
                             let currentProject = r.Proyecto;
                             let anexoActivities = new Set();
@@ -833,10 +858,10 @@
                                 optionsHTML += `<option value="${o}" ${isSelected ? 'selected' : ''}>${o}</option>`;
                             });
                             if(v !== "" && !found) optionsHTML += `<option value="${v}" selected>${v}</option>`;
-                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><select class="cell-input plan-input" style="display:none;" data-index="${i}" data-col="${cn}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">${optionsHTML}</select>`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><select class="cell-input plan-input" style="display:none;" data-id="${r.ID}" data-col="${cn}" onblur="setTimeout(() => { this.style.display='none'; if(this.previousElementSibling) this.previousElementSibling.style.display='block'; }, 150);">${optionsHTML}</select>`;
                         } else if (columnasMixtas.includes(cn)) {
                             let dlId = 'list-' + cn.replace(/\s+/g, '');
-                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><input type="text" class="cell-input plan-input" style="display:none;" data-index="${i}" data-col="${cn}" list="${dlId}" value="${v}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><input type="text" class="cell-input plan-input" style="display:none;" data-id="${r.ID}" data-col="${cn}" list="${dlId}" value="${v}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
                         } else if(listasDesplegables[cn] || dependenciasColumna[cn]){
                             let opts = listasDesplegables[cn] || (mapasDependientes[dependenciasColumna[cn]]?.[r.Proyecto] || []);
                             let found = false;
@@ -847,17 +872,17 @@
                                 optionsHTML += `<option value="${o}" ${isSelected ? 'selected' : ''}>${o}</option>`;
                             });
                             if(v !== "" && !found) optionsHTML += `<option value="${v}" selected>${v}</option>`;
-                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><select class="cell-input plan-input" style="display:none;" data-index="${i}" data-col="${cn}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">${optionsHTML}</select>`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><select class="cell-input plan-input" style="display:none;" data-id="${r.ID}" data-col="${cn}" onblur="setTimeout(() => { this.style.display='none'; if(this.previousElementSibling) this.previousElementSibling.style.display='block'; }, 150);">${optionsHTML}</select>`;
                         } else if(columnasMoneda.includes(cn)) {
-                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v ? formatMoneda(v) : '&nbsp;'}</div><input type="text" class="cell-input curr plan-input" style="display:none;" data-index="${i}" data-col="${cn}" value="${v?formatMoneda(v):''}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v ? formatMoneda(v) : '&nbsp;'}</div><input type="text" class="cell-input curr plan-input" style="display:none;" data-id="${r.ID}" data-col="${cn}" value="${v?formatMoneda(v):''}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
                         } else if(columnasFecha.includes(cn)) {
                             let dateVal = v ? toYYYYMMDD(v) : '';
-                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${dateVal ? toDDMMAAAA(v) : '&nbsp;'}</div><input type="date" class="cell-input plan-input" style="display:none;" data-index="${i}" data-col="${cn}" value="${dateVal}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${dateVal ? toDDMMAAAA(v) : '&nbsp;'}</div><input type="date" class="cell-input plan-input" style="display:none;" data-id="${r.ID}" data-col="${cn}" value="${dateVal}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
                         } else {
                             td.innerText = v;
                             td.contentEditable = true; 
                             td.className = "plan-input"; 
-                            td.dataset.index = i; 
+                            td.dataset.id = r.ID; 
                             td.dataset.col = cn;
                         }
                     } else {
@@ -869,8 +894,12 @@
                     tr.appendChild(td);
                 });
                 
-                let delTd = document.createElement('td'); if(can) delTd.innerHTML = `<button class="btn-delete" onclick="eliminarFila('Plan', '${r.ID}')">❌</button>`;
-                tr.appendChild(delTd); tbody.appendChild(tr);
+                let actionTd = document.createElement('td'); 
+                actionTd.style.whiteSpace = 'nowrap';
+                if(currentRole === 'Equipo de Contratación') {
+                    actionTd.innerHTML = `<button class="btn-copy" onclick="copiarFilaPlan('${r.ID}')" title="Duplicar Fila">📋</button><button class="btn-delete" onclick="eliminarFila('Plan', '${r.ID}')" title="Eliminar Fila">❌</button>`;
+                }
+                tr.appendChild(actionTd); tbody.appendChild(tr);
             });
             document.getElementById('summaryBar').innerText = `Mostrando ${vis} de ${appData.length} | Total: ${formatMoneda(tot)}`;
             attachListeners('plan-input', appData, renderTable);
@@ -935,7 +964,7 @@
                     if(can && cn !== "COSTO UNITARIO"){
                         if(columnasMixtas.includes(cn)){
                             let dlId = 'list-' + cn.replace(/\s+/g, '');
-                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><input type="text" class="cell-input anexo-input" style="display:none;" data-index="${i}" data-col="${cn}" list="${dlId}" value="${v}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><input type="text" class="cell-input anexo-input" style="display:none;" data-id="${r.ID}" data-col="${cn}" list="${dlId}" value="${v}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
                         } else if(listasDesplegables[cn] || cn === "Clasificador por objeto de gasto (POSPRE)"){
                             let ln = cn === "Clasificador por objeto de gasto (POSPRE)" ? "Posición Presupuestaría" : cn;
                             let opts = listasDesplegables[ln] || [];
@@ -947,17 +976,17 @@
                                 optionsHTML += `<option value="${o}" ${isSelected ? 'selected' : ''}>${o}</option>`;
                             });
                             if(v !== "" && !found) optionsHTML += `<option value="${v}" selected>${v}</option>`;
-                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><select class="cell-input anexo-input" style="display:none;" data-index="${i}" data-col="${cn}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">${optionsHTML}</select>`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v || '&nbsp;'}</div><select class="cell-input anexo-input" style="display:none;" data-id="${r.ID}" data-col="${cn}" onblur="setTimeout(() => { this.style.display='none'; if(this.previousElementSibling) this.previousElementSibling.style.display='block'; }, 150);">${optionsHTML}</select>`;
                         } else if(columnasMoneda.includes(cn)) {
-                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v ? formatMoneda(v) : '&nbsp;'}</div><input type="text" class="cell-input curr anexo-input" style="display:none;" data-index="${i}" data-col="${cn}" value="${v?formatMoneda(v):''}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${v ? formatMoneda(v) : '&nbsp;'}</div><input type="text" class="cell-input curr anexo-input" style="display:none;" data-id="${r.ID}" data-col="${cn}" value="${v?formatMoneda(v):''}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
                         } else if(columnasFecha.includes(cn)) {
                             let dateVal = v ? toYYYYMMDD(v) : '';
-                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${dateVal ? toDDMMAAAA(v) : '&nbsp;'}</div><input type="date" class="cell-input anexo-input" style="display:none;" data-index="${i}" data-col="${cn}" value="${dateVal}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
+                            td.innerHTML = `<div class="cell-display" onclick="this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.focus();">${dateVal ? toDDMMAAAA(v) : '&nbsp;'}</div><input type="date" class="cell-input anexo-input" style="display:none;" data-id="${r.ID}" data-col="${cn}" value="${dateVal}" onblur="this.style.display='none'; this.previousElementSibling.style.display='block';">`;
                         } else {
                             td.innerText = v;
                             td.contentEditable = true; 
                             td.className = "anexo-input"; 
-                            td.dataset.index = i; 
+                            td.dataset.id = r.ID; 
                             td.dataset.col = cn;
                         }
                     } else {
@@ -1055,7 +1084,10 @@
                 let evtType = (el.tagName === 'SELECT' || el.type === 'date') ? 'change' : 'blur';
                 
                 el.addEventListener(evtType, (e) => {
-                    let i = e.target.dataset.index, c = e.target.dataset.col;
+                    let rowId = e.target.dataset.id, c = e.target.dataset.col;
+                    let i = data.findIndex(r => r.ID === rowId);
+                    if (i === -1) return;
+                    
                     let v = e.target.value !== undefined ? e.target.value : e.target.innerText.trim();
                     let originalV = v; let isNumeric = false;
                     
@@ -1108,10 +1140,40 @@
                                 if(uUnitario) uUnitario.value = nuevoUnitario; else del.updates.push({id, field:"COSTO UNITARIO", value:nuevoUnitario});
                             }
                         }
-                        func(); triggerAutoSave();
-                    } else if (isNumeric && hasLetters) { func(); }
+                        setTimeout(() => { func(); triggerAutoSave(); }, 0);
+                    } else if (isNumeric && hasLetters) { 
+                        setTimeout(() => { func(); }, 0); 
+                    }
                 });
             });
+        }
+
+        function copiarFilaPlan(id) {
+            let idx = appData.findIndex(r => r.ID === id);
+            if (idx === -1) return;
+            
+            let original = appData[idx];
+            let n = { ID: generateUUID() };
+            
+            predefinedHeaders.forEach(c => {
+                n[c] = original[c] || "";
+            });
+            
+            appData.splice(idx + 1, 0, n);
+            planDeltas.adds.push(n);
+            
+            renderTable();
+            triggerAutoSave();
+            
+            setTimeout(() => {
+                let filaNueva = document.querySelector(`#viewPlanCompras tr[data-rowid="${n.ID}"]`);
+                if (filaNueva) {
+                    filaNueva.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    filaNueva.style.transition = 'background-color 0.5s'; 
+                    filaNueva.style.backgroundColor = '#fef08a';
+                    setTimeout(() => { filaNueva.style.backgroundColor = ''; }, 2000);
+                }
+            }, 300);
         }
 
         function crearNecesidad(){
@@ -1192,6 +1254,7 @@
         }
         
         function onProyectoPlanChange(){ 
+            activeColFiltersPlan = {};
             let fP = document.getElementById('filterProyecto').value;
             let pSet = new Set();
             appData.forEach(r => {
@@ -1209,6 +1272,7 @@
         }
 
         function onProyectoAnexoChange(){ 
+            activeColFiltersAnexo = {};
             let fP = document.getElementById('filterProyectoAnexo').value;
             let aSet = new Set();
             let pSet = new Set();
@@ -1243,7 +1307,6 @@
                 let fP = document.getElementById('filterProyecto').value;
                 let fPosprePlan = document.getElementById('filterPosprePlan')?.value || "";
                 let sObjeto = document.getElementById('searchObjeto')?.value.toLowerCase() || "";
-                let sObservacion = document.getElementById('searchObservacion')?.value.toLowerCase() || "";
                 
                 d = d.filter(r => {
                     if(fP && String(r.Proyecto) !== String(fP)) return false; 
@@ -1252,10 +1315,6 @@
                     if (sObjeto) {
                         let obj = String(r["Objeto"] || "").toLowerCase();
                         if (!obj.includes(sObjeto)) return false;
-                    }
-                    if (sObservacion) {
-                        let obs = String(r["Observación"] || "").toLowerCase();
-                        if (!obs.includes(sObservacion)) return false;
                     }
 
                     for (let col in activeColFiltersPlan) {
