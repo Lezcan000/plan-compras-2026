@@ -258,7 +258,7 @@
             <button onclick="closeColumnFilter()" style="border:none; background:none; cursor:pointer; color: #64748b; font-size: 14px;">✖</button>
         </div>
         
-        <!-- NUEVO: Cajita de búsqueda integrada dentro del embudo -->
+        <!-- Cajita de búsqueda integrada dentro del embudo -->
         <div style="margin-bottom: 8px;">
             <input type="text" id="filterPopupSearch" placeholder="🔍 Buscar opción..." style="width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; font-size: 12px; outline: none; background: #f8fafc;" onkeyup="searchFilterPopup()">
         </div>
@@ -641,7 +641,6 @@
             }, 300);
         }
 
-        // NUEVO: Función para el mini-buscador dentro del embudo
         function searchFilterPopup() {
             let input = document.getElementById('filterPopupSearch').value.toLowerCase();
             let labels = document.getElementById('filterPopupList').querySelectorAll('label');
@@ -678,16 +677,12 @@
             let data = view === 'Plan' ? appData : anexoData;
             let activeFilters = view === 'Plan' ? activeColFiltersPlan : activeColFiltersAnexo;
 
-            // NUEVO: Lógica de Filtros en Cascada (Doble Filtrado)
-            // 1. Obtener valores de los filtros globales
             let fP = view === 'Plan' ? document.getElementById('filterProyecto').value : document.getElementById('filterProyectoAnexo').value;
             let fPospre = view === 'Plan' ? (document.getElementById('filterPosprePlan')?.value || "") : (document.getElementById('filterPospreAnexo')?.value || "");
             let fA = view === 'Anexo' ? (document.getElementById('filterActividadMGA')?.value || "") : "";
             let sObjeto = view === 'Plan' ? (document.getElementById('searchObjeto')?.value.toLowerCase() || "") : "";
 
-            // 2. Filtrar los datos para armar el embudo inteligente
             let filteredData = data.filter(r => {
-                // Aplicar filtros fijos superiores
                 if (fP && String(r.Proyecto) !== String(fP)) return false;
                 if (view === 'Plan' && fPospre && String(r["Posición Presupuestaría"]) !== String(fPospre)) return false;
                 if (view === 'Anexo' && fPospre && String(r["Clasificador por objeto de gasto (POSPRE)"]) !== String(fPospre)) return false;
@@ -697,7 +692,6 @@
                     if (!obj.includes(sObjeto)) return false;
                 }
 
-                // Aplicar TODOS los demás embudos activos, EXCEPTO el que estoy abriendo
                 for (let c in activeFilters) {
                     if (c !== col && activeFilters[c] && activeFilters[c].length > 0) {
                         if (!activeFilters[c].includes(String(r[c] || "").trim())) return false;
@@ -706,7 +700,6 @@
                 return true;
             });
 
-            // 3. Ahora sí, sacar los valores únicos de esa data ya filtrada
             let uniqueValues = new Set();
             filteredData.forEach(r => uniqueValues.add(String(r[col] || "").trim()));
             let sortedVals = Array.from(uniqueValues).sort();
@@ -723,7 +716,6 @@
             document.getElementById('filterPopupTitle').innerText = col;
             document.getElementById('filterPopupList').innerHTML = listHTML;
             
-            // Resetear el buscador interno cada vez que se abre el embudo
             let searchInput = document.getElementById('filterPopupSearch');
             if(searchInput) searchInput.value = '';
 
@@ -737,18 +729,44 @@
 
         function closeColumnFilter() { document.getElementById('columnFilterPopup').style.display = 'none'; }
         
-        function selectAllFilters(check) { document.querySelectorAll('.col-filter-cb').forEach(cb => cb.checked = check); }
+        // REESCRITO: Solo selecciona o deselecciona las opciones visibles si hay una búsqueda activa
+        function selectAllFilters(check) { 
+            let searchInput = document.getElementById('filterPopupSearch');
+            let hasSearch = searchInput && searchInput.value.trim() !== '';
+            
+            document.querySelectorAll('.col-filter-cb').forEach(cb => {
+                let isVisible = cb.closest('label').style.display !== 'none';
+                if (hasSearch) {
+                    if (isVisible) cb.checked = check;
+                } else {
+                    cb.checked = check;
+                }
+            }); 
+        }
 
+        // REESCRITO: Ignora opciones ocultas si el usuario escribió en la caja de búsqueda
         function applyColumnFilter() {
             let selected = [];
-            document.querySelectorAll('.col-filter-cb:checked').forEach(cb => selected.push(cb.value));
+            let searchInput = document.getElementById('filterPopupSearch');
+            let hasSearch = searchInput && searchInput.value.trim() !== '';
+            let allCbs = document.querySelectorAll('.col-filter-cb');
+            
+            allCbs.forEach(cb => {
+                let isVisible = cb.closest('label').style.display !== 'none';
+                if (hasSearch) {
+                    if (cb.checked && isVisible) selected.push(cb.value);
+                } else {
+                    if (cb.checked) selected.push(cb.value);
+                }
+            });
 
             let col = currentFilterContext.col;
             let activeFilters = currentFilterContext.view === 'Plan' ? activeColFiltersPlan : activeColFiltersAnexo;
-            let allCbs = document.querySelectorAll('.col-filter-cb');
             
-            if (selected.length === allCbs.length || selected.length === 0) {
+            if (!hasSearch && (selected.length === allCbs.length || selected.length === 0)) {
                 delete activeFilters[col]; 
+            } else if (hasSearch && selected.length === 0) {
+                activeFilters[col] = ["__NO_MATCH__"]; // Filtro vacío forzado si aplicó una búsqueda sin coincidencias
             } else {
                 activeFilters[col] = selected;
             }
